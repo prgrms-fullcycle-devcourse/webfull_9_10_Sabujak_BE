@@ -1,0 +1,50 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+# 워크플로우에 부여되는 기본 권한을 최소화 (읽기 전용)
+permissions:
+  contents: read
+  pull-requests: read
+
+# 동일한 PR에서 새로운 커밋이 푸시되면 기존에 돌고 있던 CI를 취소
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, Test, and Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Security Audit
+        run: yarn audit --groups dependencies
+
+      - name: Lint code
+        run: yarn lint
+
+      - name: Run Unit Tests
+        run: yarn test
+
+      - name: Run E2E Tests
+        run: yarn test:e2e
+
+      - name: Build project
+        run: yarn build
