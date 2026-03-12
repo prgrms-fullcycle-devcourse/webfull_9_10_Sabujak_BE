@@ -1,0 +1,23 @@
+{
+  "name": "sabujak",
+  "version": "1.0.0",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "eslint": "^8.x.x",
+    "husky": "^9.x.x",
+    "lint-staged": "^15.x.x",
+    "prettier": "^3.x.x",
+    "typescript": "^5.x.x"
+  }
+}
