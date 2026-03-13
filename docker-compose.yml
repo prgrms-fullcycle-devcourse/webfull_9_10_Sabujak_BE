@@ -3,14 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: builder 
+    command: pnpm run dev
     ports:
-      - "127.0.0.1:${API_PORT:-3000}:3000"
+      - "127.0.0.1:${API_PORT}:${API_PORT}"
     env_file:
       - .env
-    command: npm run dev 
     volumes:
-      - ./:/app
-      - /app/node_modules 
+      - ./src:/app/src
     networks:
       - sabujak_net
     depends_on:
