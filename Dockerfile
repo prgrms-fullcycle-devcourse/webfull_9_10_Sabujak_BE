@@ -1,34 +1,47 @@
-# 1. 의존성 설치 및 빌드 스테이지
-FROM node:20-alpine AS builder
+# -----------------------------------------------------------------------------
+# Base Stage: 패키지 매니저 일원화 (pnpm 설치)
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS base
+# CI 환경과 동일한 pnpm v9 버전을 전역 설치하여 빌드 일관성 보장
+RUN npm install -g pnpm@9
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+
+# -----------------------------------------------------------------------------
+# Stage 1: Builder (의존성 설치 및 TypeScript 컴파일)
+# -----------------------------------------------------------------------------
+FROM base AS builder
+# pnpm 환경에 맞게 lock 파일 변경
+COPY package.json pnpm-lock.yaml ./
+# 무결성을 보장하는 설치 명령어 (--frozen-lockfile)
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-# 💡 TypeScript 프로젝트라면 빌드 수행 (package.json에 build 스크립트 필요)
-# RUN npm run build
+# TypeScript 코드를 dist 폴더로 컴파일
+RUN pnpm run build
 
-# 2. 운영용 의존성 '만' 설치하는 스테이지 (최적화)
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-# 💡 프로덕션 실행에 필요한 라이브러리만 설치 (이미지 용량 대폭 감소)
-RUN npm ci --omit=dev
+# -----------------------------------------------------------------------------
+# Stage 2: Dependencies (운영 환경 최소 의존성 캡슐화)
+# -----------------------------------------------------------------------------
+FROM base AS deps
+COPY package.json pnpm-lock.yaml ./
+# 프로덕션 실행에 필요한 라이브러리만 설치하여 이미지 경량화 및 공격 표면 축소
+RUN pnpm install --frozen-lockfile --prod
 
-# 3. 프로덕션 실행 스테이지
-FROM node:20-alpine AS runner
-WORKDIR /app
+# -----------------------------------------------------------------------------
+# Stage 3: Production Runner (최소 권한 및 ESM 런타임 최적화)
+# -----------------------------------------------------------------------------
+FROM base AS runner
 ENV NODE_ENV=production
 
-# 💡 최적화된 node_modules 복사
-COPY --from=deps /app/node_modules ./node_modules
+# 보안 핵심: 모든 복사 파일의 소유권을 root에서 node로 명시적 이관
+# Native ESM 런타임 인식을 위해 package.json 필수 복사
+COPY --chown=node:node --from=builder /app/package.json ./package.json
+COPY --chown=node:node --from=deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/dist ./dist
 
-# TS 환경에 맞게 결과물 복사
-# (JS라면 COPY --from=builder /app/src ./src)
-COPY --from=builder /app/src ./src 
-
+# root 계정 실행 차단
 USER node
 EXPOSE 3000
 
-# 프로젝트 환경에 맞게 index 진입점 수정
-CMD ["node", "src/index.js"] 
+# 트랜스파일링된 결과물 실행
+CMD ["node", "dist/index.js"]
