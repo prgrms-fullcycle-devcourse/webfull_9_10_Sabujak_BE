@@ -25,7 +25,7 @@ RUN pnpm run build
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 # 프로덕션 실행에 필요한 라이브러리만 설치하여 이미지 경량화 및 공격 표면 축소
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # -----------------------------------------------------------------------------
 # Stage 3: Production Runner (최소 권한 및 ESM 런타임 최적화)

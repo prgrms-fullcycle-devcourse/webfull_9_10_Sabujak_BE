@@ -1,0 +1,34 @@
+# 1. Dependency Directories (호환성 에러 및 용량 문제 원천 차단)
+node_modules
+.pnpm-store
+
+# 2. Build Outputs (컨테이너 내부에서 새로 빌드하므로 제외)
+dist
+build
+
+# 3. Environment Variables & Secrets (보안 위협 방지)
+.env
+.env.*
+*.pem
+credentials/
+
+# 4. Git & 형상 관리 (불필요한 메타데이터 제외)
+.git
+.github
+.husky
+.gitignore
+
+# 5. Logs & Debugging Files
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 6. Documentation & Docker Files (컨테이너 런타임에 불필요)
+README.md
+CHANGELOG.md
+Dockerfile
+.dockerignore
+docker-compose.yml
