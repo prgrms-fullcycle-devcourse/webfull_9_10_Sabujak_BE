@@ -10,13 +10,13 @@
     "build": "rm -rf dist && tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.ts\"",
-    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix --no-error-on-unmatched-pattern",
     "prepare": "husky"
   },
   "lint-staged": {
     "*.ts": [
-      "eslint --fix",
+      "eslint --fix --no-error-on-unmatched-pattern",
       "prettier --write"
     ],
     "*.{json,md}": [
@@ -24,14 +24,15 @@
     ]
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.19.37",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "eslint": "^8.x.x",
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0",
     "husky": "^9.x.x",
     "lint-staged": "^15.x.x",
     "prettier": "^3.x.x",
     "tsx": "^4.21.0",
-    "typescript": "^5.x.x"
+    "typescript": "^5.x.x",
+    "typescript-eslint": "^8.57.0"
   }
 }
