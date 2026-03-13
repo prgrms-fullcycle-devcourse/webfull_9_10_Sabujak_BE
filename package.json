@@ -2,11 +2,10 @@
   "name": "sabujak",
   "version": "1.0.0",
   "scripts": {
-    "prepare": "husky",
-    "lint": "eslint . --no-error-on-unmatched-pattern",
-    "test": "echo 'No tests yet' && exit 0",
-    "test:e2e": "echo 'No e2e tests yet' && exit 0",
-    "build": "echo 'No build yet' && exit 0"
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepare": "husky"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
