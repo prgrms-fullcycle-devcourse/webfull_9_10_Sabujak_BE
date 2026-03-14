@@ -1,0 +1,43 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder 
+    command: pnpm run dev
+    ports:
+      - "127.0.0.1:${API_PORT}:${API_PORT}"
+    env_file:
+      - .env
+    environment:
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-false}
+    volumes:
+      - ./src:/app/src
+    networks:
+      - sabujak_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sabujak_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sabujak_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

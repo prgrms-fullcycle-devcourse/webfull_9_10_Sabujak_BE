@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    /* 기본 설정 */
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    /* 디렉토리 설정 */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* 타입 검사 및 보안 (엄격 모드) */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* 빌드 최적화 */
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
+}

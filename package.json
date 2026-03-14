@@ -1,16 +1,22 @@
 {
   "name": "sabujak",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
   "scripts": {
-    "prepare": "husky",
-    "lint": "eslint . --no-error-on-unmatched-pattern",
-    "test": "echo 'No tests yet' && exit 0",
-    "test:e2e": "echo 'No e2e tests yet' && exit 0",
-    "build": "echo 'No build yet' && exit 0"
+    "dev": "tsx watch src/index.ts",
+    "build": "rm -rf dist && tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix --no-error-on-unmatched-pattern",
+    "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
+    "*.ts": [
+      "eslint --fix --no-error-on-unmatched-pattern",
       "prettier --write"
     ],
     "*.{json,md}": [
@@ -18,10 +24,15 @@
     ]
   },
   "devDependencies": {
-    "eslint": "^8.x.x",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.19.37",
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0",
     "husky": "^9.x.x",
     "lint-staged": "^15.x.x",
     "prettier": "^3.x.x",
-    "typescript": "^5.x.x"
+    "tsx": "^4.21.0",
+    "typescript": "^5.x.x",
+    "typescript-eslint": "^8.57.0"
   }
 }
