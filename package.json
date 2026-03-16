@@ -12,8 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
     "lint:fix": "eslint \"src/**/*.ts\" --fix --no-error-on-unmatched-pattern",
-    "prepare": "husky",
-    "test:rate-limit": "bash scripts/test-rate-limit.sh"
+    "prepare": "husky"
   },
   "lint-staged": {
     "*.ts": [
@@ -27,7 +26,6 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
-    "@types/express-rate-limit": "^6.0.2",
     "@types/node": "^20.19.37",
     "@types/pg": "^8.18.0",
     "eslint": "^10.0.3",
@@ -42,7 +40,6 @@
   "dependencies": {
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.3.1",
     "pg": "^8.20.0"
   }
 }
