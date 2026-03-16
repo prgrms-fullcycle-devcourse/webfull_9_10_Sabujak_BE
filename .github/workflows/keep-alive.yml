@@ -2,18 +2,20 @@ name: Render Keep Alive Production
 
 on:
   schedule:
-    - cron: "*/14 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
   ping-server:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     
     steps:
       - name: Execute Health Check Request
-        # ${{ secrets.RENDER_HEALTH_CHECK_URL }}을 통해 실제 주소를 숨기고 안전하게 주입합니다.
         run: |
-          curl -f -s -S -m 10 \
+          curl -f -s -S -m 120 \
+          --retry 3 \
+          --retry-delay 5 \
+          --retry-connrefused \
           -A "GitHubActions-KeepAlive-Bot/1.0" \
           ${{ secrets.RENDER_HEALTH_CHECK_URL }}
