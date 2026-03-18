@@ -7,6 +7,7 @@
 - DB 컬럼명은 `snake_case`를 사용합니다.
 - API 응답 필드명은 별도 직렬화 규칙에 따라 `camelCase`로 변환할 수 있습니다.
 - 시간 컬럼은 모두 UTC 기준 `timestamptz`를 사용합니다.
+- 캡슐 삭제 정책은 Hard Delete입니다.
 
 ## Mermaid ER Diagram
 
@@ -14,14 +15,13 @@
 erDiagram
     capsules {
         char(26) id PK "시스템 고유 ID (ULID)"
-        varchar(50) url_slug UK "사용자 노출용 slug"
+        varchar(50) slug_id UK "사용자 노출용 slug 식별자"
         varchar(100) title "방 제목"
-        timestampz open_at "공개 일시"
-        timestampz expires_at "만료 일시 (open_at + 7일)"
+        timestamptz open_at "공개 일시"
+        timestamptz expires_at "만료 일시 (open_at + 7일)"
         varchar(255) password_hash "관리자 비밀번호 bcrypt hash"
-        timestampz created_at "생성 일시"
-        timestampz updated_at "수정 일시"
-        timestampz deleted_at "Soft Delete 일시"
+        timestamptz created_at "생성 일시"
+        timestamptz updated_at "수정 일시"
     }
 
     messages {
@@ -29,32 +29,31 @@ erDiagram
         char(26) capsule_id FK "소속 캡슐 ID"
         varchar(20) nickname "작성자 익명 닉네임"
         text content "메시지 본문"
-        timestampz created_at "생성 일시"
+        timestamptz created_at "생성 일시"
     }
 
-    capsules ||--o{ messages : "1:N"
+    capsules ||--o{ messages : "1:N (ON DELETE CASCADE)"
 ```
 
 ## Entities
 
 ### capsules
 
-| Field      | Type         | Key   | Description                 |
-| ---------- | ------------ | ----- | --------------------------- |
-| id         | char(26)     | PK    | 시스템 고유 ID (ULID)       |
-| url_slug   | varchar(50)  | UK    | 사용자 지정 커스텀 URL      |
-| title      | varchar(100) | -     | 방 제목                     |
-| open_at    | timestamptz  | -     | 공개 일시                   |
-| expires_at | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`) |
-| password   | varchar(255) | -     | 관리자 비밀번호             |
-| created_at | timestamptz  | -     | 생성 일시                   |
-| updated_at | timestamptz  | -     | 마지막 수정 일시            |
+| Field         | Type         | Key   | Description                 |
+| ------------- | ------------ | ----- | --------------------------- |
+| id            | char(26)     | PK    | 시스템 고유 ID (ULID)       |
+| slug_id       | varchar(50)  | UK    | 사용자 지정 커스텀 URL      |
+| title         | varchar(100) | -     | 방 제목                     |
+| open_at       | timestamptz  | -     | 공개 일시                   |
+| expires_at    | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`) |
+| password_hash | varchar(255) | -     | 관리자 비밀번호 bcrypt hash |
+| created_at    | timestamptz  | -     | 생성 일시                   |
+| updated_at    | timestamptz  | -     | 마지막 수정 일시            |
 
 제약 및 규칙:
 
-- `url_slug`는 unique constraint가 필요합니다.
+- `slug_id`는 unique constraint가 필요합니다.
 - `expires_at`는 생성 시 계산 저장하며, `open_at` 변경 시 함께 재계산합니다.
-- `deleted_at IS NULL`인 행만 활성 캡슐로 간주합니다.
 
 ### messages
 
@@ -77,20 +76,19 @@ erDiagram
 
 ## Relationships
 
-| From     | Relation | To       | Description                                      |
-| -------- | -------- | -------- | ------------------------------------------------ |
-| capsules | 1:N      | messages | 하나의 캡슐 방은 여러 메시지를 가질 수 있습니다. |
+| From     | Relation | To       | Description                                                                                       |
+| -------- | -------- | -------- | ------------------------------------------------------------------------------------------------- |
+| capsules | 1:N      | messages | 하나의 캡슐 방은 여러 메시지를 가질 수 있으며, 캡슐 Hard Delete 시 연관 메시지도 함께 삭제됩니다. |
 
 ## Delete Policy
 
-- 운영 API의 캡슐 삭제는 `deleted_at`을 설정하는 Soft Delete입니다.
-- Soft Delete만으로는 DB 레벨 `ON DELETE CASCADE`가 실행되지 않습니다.
-- 따라서 메시지는 캡슐 Soft Delete 이후에도 물리적으로 남아 있을 수 있으며, 조회 시 애플리케이션 레벨에서 차단합니다.
-- 향후 배치 또는 운영 도구로 캡슐을 Hard Delete하는 경우에만 `messages.capsule_id` FK의 `ON DELETE CASCADE` 적용 여부를 선택합니다.
+- 운영 API의 캡슐 삭제는 Hard Delete입니다.
+- `messages.capsule_id`는 `capsules.id`를 참조하는 FK를 가지며, `ON DELETE CASCADE`를 적용합니다.
+- 따라서 캡슐 삭제 시 연관 메시지는 DB 레벨에서 함께 삭제됩니다.
 
 ## Recommended Indexes
 
-- `capsules(url_slug)` unique index
+- `capsules(slug_id)` unique index
 - `capsules(expires_at)` index
 - `messages(capsule_id, nickname)` unique index
 - `messages(capsule_id, created_at)` index
@@ -98,5 +96,5 @@ erDiagram
 ## Notes
 
 - 내부 참조와 조인은 `capsules.id`를 기준으로 수행합니다.
-- 사용자 노출 식별자는 `capsules.url_slug`입니다.
-- API 문서의 `openAt`, `expiresAt`, `createdAt`, `updatedAt`, `deletedAt`은 각각 DB의 `open_at`, `expires_at`, `created_at`, `updated_at`, `deleted_at`에 대응합니다.
+- 사용자 노출 식별자는 `capsules.slug_id`입니다.
+- API 문서의 `slugId`, `openAt`, `expiresAt`, `createdAt`, `updatedAt`은 각각 DB의 `slug_id`, `open_at`, `expires_at`, `created_at`, `updated_at`에 대응합니다.
