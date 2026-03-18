@@ -31,14 +31,22 @@
 - 생성 요청자는 `slugId`와 `reservationToken`의 조합으로 선점 소유권을 증명합니다.
 - DB의 `slugId` unique constraint는 동시성 문제 등 만일의 예외 상황에 대비한 최후의 방어선으로만 사용합니다.
 
-### 1.3 메시지 조회 정책
+### 1.3 공개 전/후 조회 정책
 
-- MVP 단계에서는 메시지 목록 조회 시 페이지네이션을 적용하지 않습니다.
-- 대신 캡슐당 메시지 최대 개수를 `300`건으로 제한합니다.
+- 같은 캡슐 URL에 진입했을 때, `openAt` 이전이면 기본 정보 화면을 보여주고 `openAt` 이후이면 메시지 화면을 보여줍니다.
+- API 기준 메인 조회 엔드포인트는 `GET /capsules/{slugId}` 하나로 정의합니다.
+- `openAt` 이전에는 캡슐 기본 정보만 반환하고 메시지 목록은 반환하지 않습니다.
+- `openAt` 이후에는 같은 응답에 메시지 목록 배열을 포함하여 반환합니다.
+
+### 1.4 메시지 조회 정책
+
+- MVP 문서 범위에서 메시지 목록에 대한 페이지네이션은 미적용입니다.
+- 메시지 목록은 별도 `meta` 없이 단순 배열로 반환합니다.
+- 캡슐당 메시지 최대 개수를 `300`건으로 제한합니다.
 - 메시지 수 상한에 도달하면 원칙적으로 추가 작성을 거절합니다. (단, 동시 요청 시 301~302건 등 낙관적 예외 허용)
-- MVP 이후 `cursor` 기반 페이지네이션을 도입할 예정입니다.
+- 메시지 목록은 `id ASC` 순으로 정렬합니다.
 
-### 1.4 메시지 작성 규칙
+### 1.5 메시지 작성 규칙
 
 - 같은 캡슐 내에서는 닉네임 중복을 허용하지 않습니다.
 - 닉네임은 trim 이후 `1~20자`여야 합니다.
@@ -52,12 +60,11 @@
 | System  | 헬스체크             | `GET`    | `/health`                     | 서버 상태 확인                  |
 | Capsule | 슬러그 예약 생성     | `POST`   | `/capsules/slug-reservations` | 중복 확인 후 5분 예약 토큰 발급 |
 | Capsule | 캡슐 생성            | `POST`   | `/capsules`                   | 신규 타임캡슐 생성              |
-| Capsule | 캡슐 기본 정보 조회  | `GET`    | `/capsules/{slugId}`          | 대기 화면 및 공개 상태 조회     |
+| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slugId}`          | 공개 전/후 화면용 통합 조회     |
 | Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slugId}/verify`   | 수정/삭제 진입용 비밀번호 검증  |
 | Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slugId}`          | 비밀번호 검증 후 수정           |
 | Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slugId}`          | 비밀번호 검증 후 Hard Delete    |
 | Message | 메시지 작성          | `POST`   | `/capsules/{slugId}/messages` | 익명 메시지 작성                |
-| Message | 메시지 목록 조회     | `GET`    | `/capsules/{slugId}/messages` | MVP에서는 전체 조회             |
 
 ## 3. 엔드포인트 상세
 
@@ -104,8 +111,7 @@ Response `201 Created`
 - Redis에서 활성 예약 여부 확인
 - 사용 가능하면 Redis key `capsule:slug-reservation:{slugId}`에 `SET NX EX 300`으로 선점
 - Redis value에는 예약 소유권 검증용 임시 토큰(`reservationToken`)을 저장합니다.
-- 이미 사용 중인 `slugId`이면 `409 SLUG_ALREADY_IN_USE`
-- 다른 사용자가 예약 중이면 `409 SLUG_RESERVED`
+- 이미 사용 중이거나 현재 예약 중인 `slugId`이면 `409 SLUG_ALREADY_IN_USE`
 
 ### 3.3 캡슐 생성
 
@@ -117,7 +123,7 @@ Request Body
 {
   "slugId": "our-graduation-2025",
   "title": "졸업 축하 타임캡슐",
-  "password": "plain-text-password",
+  "password": "1234",
   "openAt": "2025-12-25T12:00:00.000Z",
   "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
 }
@@ -141,17 +147,24 @@ Response `201 Created`
 
 - 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 모두 반영된 '최근 활동 시각'을 의미합니다. (생성 시에는 `createdAt`과 동일)
 - `title`은 trim 이후 `1~100자`여야 합니다.
-- `password`는 `8~64자`이며 공백이 불가합니다. 이 값은 캡슐 관리자 비밀번호 원문 값으로, 저장 전 bcrypt hash 처리합니다.
+- `password`는 숫자 `4자리`여야 합니다. 이 값은 캡슐 관리자 비밀번호 원문 값으로, 저장 전 hash 처리합니다.
 - `reservationToken`은 필수(Required)입니다. 누락 시 `400 INVALID_INPUT`을 반환합니다.
 - `reservationToken`이 Redis 예약 정보와 일치해야 합니다.
 - 예약 토큰이 만료되었거나, 정보 불일치로 예약 검증에 실패하면 `409 SLUG_RESERVATION_MISMATCH`를 반환합니다.
 - 최종 저장 시 `slugId` unique constraint 충돌이 발생하면 `409 SLUG_ALREADY_IN_USE`를 반환합니다.
 
-### 3.4 캡슐 기본 정보 조회
+### 3.4 캡슐 조회
 
 `GET /capsules/{slugId}`
 
-Response `200 OK`
+설명:
+
+- 하나의 API 엔드포인트로 공개 전/후 화면 흐름을 지원합니다.
+- 같은 캡슐 URL 진입 시 D-day(`openAt`) 전에는 기본 정보 화면, 이후에는 메시지 화면이 노출됨에 맞춰 응답이 달라집니다.
+- 공개 전(`openAt` 이전)에는 캡슐 기본 정보만 반환합니다.
+- 공개 후(`openAt` 이상, 만료 전)에는 캡슐 정보와 함께 메시지 목록을 `messages` 단순 배열 필드로 포함하여 반환합니다.
+
+공개 전 Response `200 OK`
 
 ```json
 {
@@ -167,10 +180,36 @@ Response `200 OK`
 }
 ```
 
+공개 후 Response `200 OK`
+
+```json
+{
+  "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+  "slugId": "our-graduation-2025",
+  "title": "졸업 축하 타임캡슐",
+  "openAt": "2025-12-25T12:00:00.000Z",
+  "expiresAt": "2026-01-01T12:00:00.000Z",
+  "createdAt": "2025-03-18T02:05:21.000Z",
+  "updatedAt": "2025-06-01T10:00:00.000Z",
+  "isOpen": true,
+  "messageCount": 12,
+  "messages": [
+    {
+      "id": 1,
+      "nickname": "익명의 멘토",
+      "content": "졸업을 진심으로 축하합니다!",
+      "createdAt": "2025-12-24T15:30:00.000Z"
+    }
+  ]
+}
+```
+
 규칙:
 
-- 만료 상태이면 `410 CAPSULE_EXPIRED`
-- 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 반영된 '최근 활동 시각'을 의미합니다.
+- 만료 상태이면 기존 정책대로 `410 CAPSULE_EXPIRED`
+- 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 모두 반영된 '최근 활동 시각'을 의미합니다. (공개 후 응답의 `messages` 배열 포함 여부와 무관하게 캡슐의 최종 업데이트 시간을 나타냄)
+- 공개 후 응답에서 각 메시지는 `id ASC` 순으로 정렬됩니다.
+- MVP 문서 범위에서 메시지 목록에 대한 페이지네이션은 미적용입니다.
 
 ### 3.5 관리자 비밀번호 확인
 
@@ -180,7 +219,7 @@ Request Body
 
 ```json
 {
-  "password": "plain-text-password"
+  "password": "1234"
 }
 ```
 
@@ -194,7 +233,7 @@ Response `200 OK`
 
 규칙:
 
-- `password`는 `8~64자`이며 공백이 불가합니다. (캡슐 관리자 비밀번호 원문 입력값)
+- `password`는 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - 비밀번호 불일치 시 `403 FORBIDDEN_PASSWORD`
 - 동일 IP 또는 동일 `slugId`에 대한 연속 실패는 rate limit 대상입니다.
 
@@ -206,7 +245,7 @@ Request Body
 
 ```json
 {
-  "password": "plain-text-password",
+  "password": "1234",
   "title": "수정된 졸업 축하 방",
   "openAt": "2025-12-25T12:00:00.000Z"
 }
@@ -227,7 +266,7 @@ Response `200 OK`
 
 규칙:
 
-- `password`는 필수입니다. (`8~64자`, 공백 불가 원문 입력값)
+- `password`는 필수이며 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - 수정 가능한 필드는 `title`(trim 이후 `1~100자`), `openAt`입니다.
 - `openAt`이 변경되면 `expiresAt`도 즉시 재계산합니다.
 - 캡슐 내용이 수정되면 '최근 활동 시각'을 의미하는 `updatedAt`이 갱신됩니다.
@@ -242,7 +281,7 @@ Request Body
 
 ```json
 {
-  "password": "plain-text-password"
+  "password": "1234"
 }
 ```
 
@@ -256,7 +295,7 @@ Response `200 OK`
 
 규칙:
 
-- `password`는 `8~64자`이며 공백이 불가합니다. (캡슐 관리자 비밀번호 원문 입력값)
+- `password`는 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - Hard Delete로 처리합니다.
 - 캡슐 삭제 시 연관 메시지는 함께 삭제됩니다.
 
@@ -294,61 +333,6 @@ Response `201 Created`
 - 메시지 수가 `300`건에 도달하면 원칙상 `409 MESSAGE_LIMIT_EXCEEDED`를 반환합니다. (구현 메모의 낙관적 동시성 예외 정책 참고)
 - **메시지 작성 성공 시 연관된 캡슐의 `updatedAt` 필드를 갱신하여 방의 최신 활동(최신 메시지 수신) 상태를 반영합니다.**
 
-### 3.9 메시지 목록 조회
-
-`GET /capsules/{slugId}/messages`
-
-설명:
-
-- MVP 단계에서는 페이지네이션 없이 전체 메시지를 반환합니다. (추후 확장을 고려하여 비페이지네이션이라도 id 기준 정렬을 사용합니다.)
-- 운영 안정성을 위해 캡슐당 메시지 수는 최대 `300`건입니다.
-- 정렬 기준은 `id ASC`입니다.
-- 캡슐 공개 전에는 `content`를 마스킹해서 반환합니다.
-
-Response `200 OK`
-
-```json
-{
-  "data": [
-    {
-      "id": 1,
-      "nickname": "익명의 멘토",
-      "content": "아직 열어볼 수 없는 편지입니다.",
-      "createdAt": "2025-12-24T15:30:00.000Z"
-    },
-    {
-      "id": 2,
-      "nickname": "동기 A",
-      "content": "아직 열어볼 수 없는 편지입니다.",
-      "createdAt": "2025-12-24T16:00:00.000Z"
-    }
-  ],
-  "meta": {
-    "totalCount": 2,
-    "pagination": "none-mvp"
-  }
-}
-```
-
-공개 이후 Response 예시
-
-```json
-{
-  "data": [
-    {
-      "id": 1,
-      "nickname": "익명의 멘토",
-      "content": "졸업을 진심으로 축하합니다!",
-      "createdAt": "2025-12-24T15:30:00.000Z"
-    }
-  ],
-  "meta": {
-    "totalCount": 1,
-    "pagination": "none-mvp"
-  }
-}
-```
-
 ## 4. 공통 에러 규격
 
 에러 응답 형식
@@ -362,18 +346,17 @@ Response `200 OK`
 }
 ```
 
-| 상태 코드 | 에러 코드                   | 설명                                |
-| --------- | --------------------------- | ----------------------------------- |
-| `400`     | `INVALID_INPUT`             | Zod 검증 실패                       |
-| `403`     | `FORBIDDEN_PASSWORD`        | 비밀번호 불일치                     |
-| `404`     | `CAPSULE_NOT_FOUND`         | 존재하지 않는 `slugId`              |
-| `409`     | `SLUG_ALREADY_IN_USE`       | DB에 이미 존재하는 `slugId`         |
-| `409`     | `SLUG_RESERVED`             | 다른 사용자가 `slugId` 예약 중      |
-| `409`     | `SLUG_RESERVATION_MISMATCH` | 예약 토큰이 없거나 소유권 검증 실패 |
-| `409`     | `DUPLICATE_NICKNAME`        | 같은 캡슐 내 닉네임 중복            |
-| `409`     | `MESSAGE_LIMIT_EXCEEDED`    | 캡슐당 최대 메시지 수 초과          |
-| `410`     | `CAPSULE_EXPIRED`           | `expiresAt` 경과                    |
-| `429`     | `TOO_MANY_REQUESTS`         | 비밀번호 검증 또는 반복 요청 제한   |
+| 상태 코드 | 에러 코드                   | 설명                                       |
+| --------- | --------------------------- | ------------------------------------------ |
+| `400`     | `INVALID_INPUT`             | Zod 검증 실패                              |
+| `403`     | `FORBIDDEN_PASSWORD`        | 비밀번호 불일치                            |
+| `404`     | `CAPSULE_NOT_FOUND`         | 존재하지 않는 `slugId`                     |
+| `409`     | `SLUG_ALREADY_IN_USE`       | 이미 사용 중이거나 현재 예약 중인 `slugId` |
+| `409`     | `SLUG_RESERVATION_MISMATCH` | 예약 토큰이 없거나 소유권 검증 실패        |
+| `409`     | `DUPLICATE_NICKNAME`        | 같은 캡슐 내 닉네임 중복                   |
+| `409`     | `MESSAGE_LIMIT_EXCEEDED`    | 캡슐당 최대 메시지 수 초과                 |
+| `410`     | `CAPSULE_EXPIRED`           | `expiresAt` 경과                           |
+| `429`     | `TOO_MANY_REQUESTS`         | 비밀번호 검증 또는 반복 요청 제한          |
 
 ## 5. 구현 메모
 
