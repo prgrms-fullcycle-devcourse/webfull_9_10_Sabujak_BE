@@ -285,13 +285,7 @@ Request Body
 }
 ```
 
-Response `200 OK`
-
-```json
-{
-  "deleted": true
-}
-```
+Response `204 No Content`
 
 규칙:
 
