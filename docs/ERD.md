@@ -39,17 +39,16 @@ erDiagram
 
 ### capsules
 
-| Field         | Type         | Key   | Description                 |
-| ------------- | ------------ | ----- | --------------------------- |
-| id            | char(26)     | PK    | 시스템 고유 ID (ULID)       |
-| url_slug      | varchar(50)  | UK    | 사용자 지정 커스텀 URL      |
-| title         | varchar(100) | -     | 방 제목                     |
-| open_at       | timestamptz  | -     | 공개 일시                   |
-| expires_at    | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`) |
-| password_hash | varchar(255) | -     | 관리자 비밀번호 bcrypt hash |
-| created_at    | timestamptz  | -     | 생성 일시                   |
-| updated_at    | timestamptz  | -     | 마지막 수정 일시            |
-| deleted_at    | timestamptz  | -     | Soft Delete 일시            |
+| Field      | Type         | Key   | Description                 |
+| ---------- | ------------ | ----- | --------------------------- |
+| id         | char(26)     | PK    | 시스템 고유 ID (ULID)       |
+| url_slug   | varchar(50)  | UK    | 사용자 지정 커스텀 URL      |
+| title      | varchar(100) | -     | 방 제목                     |
+| open_at    | timestamptz  | -     | 공개 일시                   |
+| expires_at | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`) |
+| password   | varchar(255) | -     | 관리자 비밀번호             |
+| created_at | timestamptz  | -     | 생성 일시                   |
+| updated_at | timestamptz  | -     | 마지막 수정 일시            |
 
 제약 및 규칙:
 
