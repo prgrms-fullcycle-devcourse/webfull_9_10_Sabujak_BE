@@ -1,6 +1,16 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { helloWorld, healthCheck } from "./app.controller";
+import {
+  createCapsule,
+  createMessage,
+  createSlugReservation,
+  deleteCapsule,
+  getCapsule,
+  healthCheck,
+  helloWorld,
+  updateCapsule,
+  verifyCapsulePassword,
+} from "./app.controller";
 
 const router = Router();
 
@@ -35,5 +45,12 @@ router.get("/healthCheck", healthCheckLimiter, healthCheck);
 router.use(globalApiLimiter);
 
 router.get("/", helloWorld);
+router.post("/capsules/slug-reservations", createSlugReservation);
+router.post("/capsules", createCapsule);
+router.get("/capsules/:slugId", getCapsule);
+router.post("/capsules/:slugId/verify", verifyCapsulePassword);
+router.patch("/capsules/:slugId", updateCapsule);
+router.delete("/capsules/:slugId", deleteCapsule);
+router.post("/capsules/:slugId/messages", createMessage);
 
 export default router;
