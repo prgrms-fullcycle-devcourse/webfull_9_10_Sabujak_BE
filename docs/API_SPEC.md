@@ -15,6 +15,7 @@
 
 - 캡슐은 생성 시 `openAt`을 기준으로 `expiresAt = openAt + 7일`로 저장합니다.
 - `openAt`이 수정되면 `expiresAt`도 같은 규칙으로 함께 재계산합니다.
+- `updatedAt` 필드는 캡슐 정보의 수정뿐만 아니라, 새로운 메시지 수신 시에도 갱신되는 '최근 활동 시각'을 의미합니다.
 - `expiresAt`이 지난 캡슐은 만료 상태로 간주하며, 열람 및 작성 정책은 아래 엔드포인트 규칙을 따릅니다.
 - 캡슐 삭제는 Hard Delete로 처리합니다.
 
@@ -24,15 +25,17 @@
 - 슬러그 선점은 상태를 변경하는 동작이므로 `GET`이 아니라 `POST`를 사용합니다.
 - `POST /capsules/slug-reservations` 요청 안에서 중복 확인과 5분 예약 생성을 함께 처리합니다.
 - 서버는 DB의 기존 `slugId` 사용 여부와 Redis 활성 예약을 모두 확인한 뒤, 사용 가능할 때만 Redis `SET NX EX 300`으로 선점합니다.
-- 예약 생성 성공 시 `reservationToken`을 반환합니다.
-- `POST /capsules`는 `reservationToken`을 함께 받아 예약 소유권을 검증합니다.
-- 예약 없이 생성 요청이 들어오더라도, 최종 중복 검사는 DB unique constraint로 한 번 더 보장합니다.
+- 발급/저장되는 `reservationToken`은 사용자 인증(로그인 등)과 무관한, **슬러그 선점 소유권 확인용 임시(익명) 토큰**입니다.
+- TTL 내에서만 유효하며, 만료되면 다시 선점 요청이 필요합니다.
+- `reservationToken`은 이후 `POST /capsules` 요청에서 필수로 제출해야 합니다. (누락 시 `400 INVALID_INPUT`으로 즉시 거절)
+- 생성 요청자는 `slugId`와 `reservationToken`의 조합으로 선점 소유권을 증명합니다.
+- DB의 `slugId` unique constraint는 동시성 문제 등 만일의 예외 상황에 대비한 최후의 방어선으로만 사용합니다.
 
 ### 1.3 메시지 조회 정책
 
 - MVP 단계에서는 메시지 목록 조회 시 페이지네이션을 적용하지 않습니다.
 - 대신 캡슐당 메시지 최대 개수를 `300`건으로 제한합니다.
-- 메시지 수 상한에 도달하면 추가 작성은 거절합니다.
+- 메시지 수 상한에 도달하면 원칙적으로 추가 작성을 거절합니다. (단, 동시 요청 시 301~302건 등 낙관적 예외 허용)
 - MVP 이후 `cursor` 기반 페이지네이션을 도입할 예정입니다.
 
 ### 1.4 메시지 작성 규칙
@@ -100,7 +103,7 @@ Response `201 Created`
 - DB에서 기존 캡슐 `slugId` 중복 여부 확인
 - Redis에서 활성 예약 여부 확인
 - 사용 가능하면 Redis key `capsule:slug-reservation:{slugId}`에 `SET NX EX 300`으로 선점
-- Redis value에는 예약 소유권 검증용 토큰 또는 세션 식별자를 저장합니다.
+- Redis value에는 예약 소유권 검증용 임시 토큰(`reservationToken`)을 저장합니다.
 - 이미 사용 중인 `slugId`이면 `409 SLUG_ALREADY_IN_USE`
 - 다른 사용자가 예약 중이면 `409 SLUG_RESERVED`
 
@@ -129,15 +132,19 @@ Response `201 Created`
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
-  "createdAt": "2025-03-18T02:05:21.000Z"
+  "createdAt": "2025-03-18T02:05:21.000Z",
+  "updatedAt": "2025-03-18T02:05:21.000Z"
 }
 ```
 
 규칙:
 
-- `password`는 저장 전 bcrypt hash 처리합니다.
+- 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 모두 반영된 '최근 활동 시각'을 의미합니다. (생성 시에는 `createdAt`과 동일)
+- `title`은 trim 이후 `1~100자`여야 합니다.
+- `password`는 `8~64자`이며 공백이 불가합니다. 이 값은 캡슐 관리자 비밀번호 원문 값으로, 저장 전 bcrypt hash 처리합니다.
+- `reservationToken`은 필수(Required)입니다. 누락 시 `400 INVALID_INPUT`을 반환합니다.
 - `reservationToken`이 Redis 예약 정보와 일치해야 합니다.
-- 예약 검증에 실패하면 `409 SLUG_RESERVATION_MISMATCH`를 반환합니다.
+- 예약 토큰이 만료되었거나, 정보 불일치로 예약 검증에 실패하면 `409 SLUG_RESERVATION_MISMATCH`를 반환합니다.
 - 최종 저장 시 `slugId` unique constraint 충돌이 발생하면 `409 SLUG_ALREADY_IN_USE`를 반환합니다.
 
 ### 3.4 캡슐 기본 정보 조회
@@ -153,6 +160,8 @@ Response `200 OK`
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
+  "createdAt": "2025-03-18T02:05:21.000Z",
+  "updatedAt": "2025-03-18T02:05:21.000Z",
   "isOpen": false,
   "messageCount": 12
 }
@@ -161,6 +170,7 @@ Response `200 OK`
 규칙:
 
 - 만료 상태이면 `410 CAPSULE_EXPIRED`
+- 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 반영된 '최근 활동 시각'을 의미합니다.
 
 ### 3.5 관리자 비밀번호 확인
 
@@ -184,6 +194,7 @@ Response `200 OK`
 
 규칙:
 
+- `password`는 `8~64자`이며 공백이 불가합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - 비밀번호 불일치 시 `403 FORBIDDEN_PASSWORD`
 - 동일 IP 또는 동일 `slugId`에 대한 연속 실패는 rate limit 대상입니다.
 
@@ -209,15 +220,17 @@ Response `200 OK`
   "slugId": "our-graduation-2025",
   "title": "수정된 졸업 축하 방",
   "openAt": "2025-12-25T12:00:00.000Z",
-  "expiresAt": "2026-01-01T12:00:00.000Z"
+  "expiresAt": "2026-01-01T12:00:00.000Z",
+  "updatedAt": "2025-06-01T10:00:00.000Z"
 }
 ```
 
 규칙:
 
-- `password`는 필수입니다.
-- 수정 가능한 필드는 `title`, `openAt`입니다.
+- `password`는 필수입니다. (`8~64자`, 공백 불가 원문 입력값)
+- 수정 가능한 필드는 `title`(trim 이후 `1~100자`), `openAt`입니다.
 - `openAt`이 변경되면 `expiresAt`도 즉시 재계산합니다.
+- 캡슐 내용이 수정되면 '최근 활동 시각'을 의미하는 `updatedAt`이 갱신됩니다.
 - 이미 만료된 캡슐은 수정할 수 없습니다.
 - 공개 여부와 무관하게 수정 허용 여부는 운영 정책으로 고정해야 하며, MVP에서는 `openAt` 이전까지만 수정 가능으로 정의합니다.
 
@@ -243,6 +256,7 @@ Response `200 OK`
 
 규칙:
 
+- `password`는 `8~64자`이며 공백이 불가합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - Hard Delete로 처리합니다.
 - 캡슐 삭제 시 연관 메시지는 함께 삭제됩니다.
 
@@ -277,7 +291,8 @@ Response `201 Created`
 - `content`는 trim 이후 `1~1000자`여야 합니다.
 - 같은 캡슐 내에서 이미 사용 중인 `nickname`이면 `409 DUPLICATE_NICKNAME`
 - 중복 닉네임 오류 메시지는 `"중복된 닉네임입니다"`를 반환합니다.
-- 메시지 수가 `300`건에 도달하면 `409 MESSAGE_LIMIT_EXCEEDED`
+- 메시지 수가 `300`건에 도달하면 원칙상 `409 MESSAGE_LIMIT_EXCEEDED`를 반환합니다. (구현 메모의 낙관적 동시성 예외 정책 참고)
+- **메시지 작성 성공 시 연관된 캡슐의 `updatedAt` 필드를 갱신하여 방의 최신 활동(최신 메시지 수신) 상태를 반영합니다.**
 
 ### 3.9 메시지 목록 조회
 
@@ -285,9 +300,9 @@ Response `201 Created`
 
 설명:
 
-- MVP 단계에서는 페이지네이션 없이 전체 메시지를 반환합니다.
+- MVP 단계에서는 페이지네이션 없이 전체 메시지를 반환합니다. (추후 확장을 고려하여 비페이지네이션이라도 id 기준 정렬을 사용합니다.)
 - 운영 안정성을 위해 캡슐당 메시지 수는 최대 `300`건입니다.
-- 정렬 기준은 `createdAt ASC`입니다.
+- 정렬 기준은 `id ASC`입니다.
 - 캡슐 공개 전에는 `content`를 마스킹해서 반환합니다.
 
 Response `200 OK`
@@ -365,4 +380,5 @@ Response `200 OK`
 - 비밀번호 검증, 수정, 삭제 API는 `catchAsync` 래퍼 또는 동등한 방식으로 비동기 에러를 누락 없이 처리합니다.
 - 슬러그 선점 API에서 DB 중복 검사와 Redis 예약 확인을 함께 수행하는 설계는, 버튼이 하나인 현재 UX와 잘 맞습니다.
 - Redis 예약과 DB insert 사이에는 race condition이 있을 수 있으므로, DB unique constraint를 최종 방어선으로 둡니다.
+- 캡슐 당 최대 300건의 메시지 수 제한은 애플리케이션 레벨 비즈니스 정책입니다. 따라서, 많은 사용자가 동시에 메시지를 작성할 때 발생하는 동시성 충돌(`race condition`)로 인해 `301~302` 건 수준으로 소폭 허용되는 부분은 낙관적으로 허용합니다. 엄격하게 트랜잭션 락을 걸지 않습니다.
 - DB 내부 오류와 쿼리 상세는 클라이언트에 노출하지 않습니다.

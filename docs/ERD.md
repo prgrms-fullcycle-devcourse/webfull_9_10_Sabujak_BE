@@ -39,16 +39,16 @@ erDiagram
 
 ### capsules
 
-| Field         | Type         | Key   | Description                 |
-| ------------- | ------------ | ----- | --------------------------- |
-| id            | char(26)     | PK    | 시스템 고유 ID (ULID)       |
-| slug_id       | varchar(50)  | UK    | 사용자 지정 커스텀 URL      |
-| title         | varchar(100) | -     | 방 제목                     |
-| open_at       | timestamptz  | -     | 공개 일시                   |
-| expires_at    | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`) |
-| password_hash | varchar(255) | -     | 관리자 비밀번호 bcrypt hash |
-| created_at    | timestamptz  | -     | 생성 일시                   |
-| updated_at    | timestamptz  | -     | 마지막 수정 일시            |
+| Field         | Type         | Key   | Description                                              |
+| ------------- | ------------ | ----- | -------------------------------------------------------- |
+| id            | char(26)     | PK    | 시스템 고유 ID (ULID)                                    |
+| slug_id       | varchar(50)  | UK    | 사용자 지정 커스텀 URL                                   |
+| title         | varchar(100) | -     | 방 제목                                                  |
+| open_at       | timestamptz  | -     | 공개 일시                                                |
+| expires_at    | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`)                              |
+| password_hash | varchar(255) | -     | 관리자 비밀번호 bcrypt hash                              |
+| created_at    | timestamptz  | -     | 생성 일시                                                |
+| updated_at    | timestamptz  | -     | 마지막 수정 일시 (정보 변경 및 신규 메시지 수신 시 갱신) |
 
 제약 및 규칙:
 
@@ -68,11 +68,12 @@ erDiagram
 제약 및 규칙:
 
 - `capsule_id`는 `capsules.id`를 참조합니다.
+- 조회 시 기본 정렬은 `id ASC`를 따릅니다.
 - 닉네임은 trim 이후 `1~20자` 길이 제한을 가집니다.
 - 내용은 trim 이후 `1~1000자` 길이 제한을 가집니다.
 - 같은 캡슐 내에서는 `nickname` 중복을 허용하지 않습니다.
 - 이를 위해 `(capsule_id, nickname)` 복합 unique constraint를 둡니다.
-- MVP 단계에서는 캡슐당 메시지 최대 `300`건 정책을 애플리케이션 레벨에서 강제합니다.
+- MVP 단계에서는 캡슐당 메시지 최대 `300`건 정책을 애플리케이션 레벨에서 강제합니다. (단, 동시 요청 시 301~302건 등 낙관적 예외 허용)
 
 ## Relationships
 
@@ -91,7 +92,7 @@ erDiagram
 - `capsules(slug_id)` unique index
 - `capsules(expires_at)` index
 - `messages(capsule_id, nickname)` unique index
-- `messages(capsule_id, created_at)` index
+- `messages(capsule_id, id)` index
 
 ## Notes
 
