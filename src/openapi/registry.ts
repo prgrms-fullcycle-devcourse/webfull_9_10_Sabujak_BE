@@ -269,3 +269,5 @@ export const generateOpenApiDocument = () => {
     ],
   });
 };
+
+export const openApiDocument = generateOpenApiDocument();

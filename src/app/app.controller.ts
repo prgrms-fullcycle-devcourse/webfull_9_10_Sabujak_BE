@@ -1,4 +1,3 @@
-import path from "node:path";
 import { Request, Response } from "express";
 import pool from "./db";
 import {
@@ -18,6 +17,7 @@ import {
   updateCapsuleResponseSchema,
   verifyPasswordResponseSchema,
 } from "../schemas/capsules.schema";
+import { openApiDocument } from "../openapi/registry";
 
 const getSlugParam = (slug: string | string[] | undefined) =>
   Array.isArray(slug) ? slug[0] : slug;
@@ -88,5 +88,5 @@ export const createMessage = (req: Request, res: Response) => {
 };
 
 export const getOpenApiDocument = (req: Request, res: Response) => {
-  res.sendFile(path.resolve(process.cwd(), "openapi.json"));
+  res.json(openApiDocument);
 };
