@@ -19,8 +19,8 @@ import {
   verifyPasswordResponseSchema,
 } from "../schemas/capsules.schema";
 
-const getSlugParam = (slugId: string | string[] | undefined) =>
-  Array.isArray(slugId) ? slugId[0] : slugId;
+const getSlugParam = (slug: string | string[] | undefined) =>
+  Array.isArray(slug) ? slug[0] : slug;
 
 export const helloWorld = (req: Request, res: Response) => {
   res.status(200).send("Hello world~");
@@ -36,13 +36,13 @@ export const healthCheck = async (req: Request, res: Response) => {
 };
 
 export const createSlugReservation = (req: Request, res: Response) => {
-  const payload = buildSlugReservationMock(req.body?.slugId);
+  const payload = buildSlugReservationMock(req.body?.slug);
   res.status(201).json(slugReservationResponseSchema.parse(payload));
 };
 
 export const createCapsule = (req: Request, res: Response) => {
   const payload = buildCapsuleBaseMock({
-    slugId: req.body?.slugId,
+    slug: req.body?.slug,
     title: req.body?.title,
     openAt: req.body?.openAt,
   });
@@ -50,7 +50,7 @@ export const createCapsule = (req: Request, res: Response) => {
 };
 
 export const getCapsule = (req: Request, res: Response) => {
-  const payload = buildCapsuleDetailMock(getSlugParam(req.params.slugId) ?? "");
+  const payload = buildCapsuleDetailMock(getSlugParam(req.params.slug) ?? "");
   res.status(200).json(capsuleDetailResponseSchema.parse(payload));
 };
 
@@ -62,7 +62,7 @@ export const verifyCapsulePassword = (req: Request, res: Response) => {
 
 export const updateCapsule = (req: Request, res: Response) => {
   const payload = buildCapsuleBaseMock({
-    slugId: getSlugParam(req.params.slugId),
+    slug: getSlugParam(req.params.slug),
     title: req.body?.title,
     openAt: req.body?.openAt,
   });
@@ -74,7 +74,7 @@ export const deleteCapsule = (req: Request, res: Response) => {
     .status(200)
     .json(
       deleteCapsuleResponseSchema.parse(
-        buildDeleteCapsuleMock(getSlugParam(req.params.slugId)),
+        buildDeleteCapsuleMock(getSlugParam(req.params.slug)),
       ),
     );
 };

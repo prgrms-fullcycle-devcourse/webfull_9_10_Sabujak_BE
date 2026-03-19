@@ -27,7 +27,7 @@ registry.registerPath({
   tags: ["Capsule"],
   summary: "슬러그 예약 생성",
   description:
-    "현재 mock 서버에서는 어떤 slugId가 와도 예약 성공 응답을 반환합니다.",
+    "현재 mock 서버에서는 어떤 slug가 와도 예약 성공 응답을 반환합니다.",
   request: {
     body: {
       required: true,
@@ -56,7 +56,7 @@ registry.registerPath({
   tags: ["Capsule"],
   summary: "캡슐 생성",
   description:
-    "현재 mock 서버에서는 slugId, title, openAt만 응답에 반영하고 password와 reservationToken은 검증하지 않습니다.",
+    "현재 mock 서버에서는 slug, title, openAt만 응답에 반영하고 password와 reservationToken은 검증하지 않습니다.",
   request: {
     body: {
       required: true,
@@ -81,11 +81,11 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/capsules/{slugId}",
+  path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 조회",
   description:
-    "현재 mock 서버에서는 공개 여부를 시간 대신 slugId로 분기합니다. `opened-capsule` 예시를 사용하면 공개 후 응답을 확인할 수 있습니다.",
+    "현재 mock 서버에서는 공개 여부를 시간 대신 slug로 분기합니다. `opened-capsule` 예시를 사용하면 공개 후 응답을 확인할 수 있습니다.",
   request: {
     params: capsuleSlugParamsSchema,
   },
@@ -100,7 +100,7 @@ registry.registerPath({
               summary: "공개 전 예시",
               value: {
                 id: capsuleMockExamples.capsuleId,
-                slugId: capsuleMockExamples.defaultSlugId,
+                slug: capsuleMockExamples.defaultSlug,
                 title: capsuleMockExamples.defaultTitle,
                 openAt: capsuleMockExamples.openAt,
                 expiresAt: capsuleMockExamples.expiresAt,
@@ -114,7 +114,7 @@ registry.registerPath({
               summary: "공개 후 예시",
               value: {
                 id: capsuleMockExamples.capsuleId,
-                slugId: capsuleMockExamples.openedSlugId,
+                slug: capsuleMockExamples.openedSlug,
                 title: capsuleMockExamples.defaultTitle,
                 openAt: capsuleMockExamples.openAt,
                 expiresAt: capsuleMockExamples.expiresAt,
@@ -141,7 +141,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/capsules/{slugId}/verify",
+  path: "/capsules/{slug}/verify",
   tags: ["Capsule"],
   summary: "관리자 비밀번호 확인",
   description:
@@ -171,7 +171,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "patch",
-  path: "/capsules/{slugId}",
+  path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 수정",
   description:
@@ -201,11 +201,11 @@ registry.registerPath({
 
 registry.registerPath({
   method: "delete",
-  path: "/capsules/{slugId}",
+  path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 삭제",
   description:
-    "현재 mock 서버에서는 어떤 slugId가 와도 deleted: true 응답을 반환합니다.",
+    "현재 mock 서버에서는 어떤 slug가 와도 deleted: true 응답을 반환합니다.",
   request: {
     params: capsuleSlugParamsSchema,
   },
@@ -223,7 +223,7 @@ registry.registerPath({
 
 registry.registerPath({
   method: "post",
-  path: "/capsules/{slugId}/messages",
+  path: "/capsules/{slug}/messages",
   tags: ["Message"],
   summary: "메시지 작성",
   description:

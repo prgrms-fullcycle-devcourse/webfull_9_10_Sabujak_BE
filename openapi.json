@@ -15,7 +15,7 @@
       "SlugReservationResponse": {
         "type": "object",
         "properties": {
-          "slugId": {
+          "slug": {
             "type": "string",
             "minLength": 1,
             "description": "사용자 노출용 slug 식별자",
@@ -31,19 +31,19 @@
             "example": "2026-03-18T02:10:21.000Z"
           }
         },
-        "required": ["slugId", "reservationToken", "reservedUntil"]
+        "required": ["slug", "reservationToken", "reservedUntil"]
       },
       "CreateSlugReservationRequest": {
         "type": "object",
         "properties": {
-          "slugId": {
+          "slug": {
             "type": "string",
             "minLength": 1,
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           }
         },
-        "required": ["slugId"]
+        "required": ["slug"]
       },
       "CreateCapsuleResponse": {
         "type": "object",
@@ -52,7 +52,7 @@
             "type": "string",
             "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
           },
-          "slugId": {
+          "slug": {
             "type": "string",
             "minLength": 1,
             "description": "사용자 노출용 slug 식별자",
@@ -86,7 +86,7 @@
         },
         "required": [
           "id",
-          "slugId",
+          "slug",
           "title",
           "openAt",
           "expiresAt",
@@ -97,7 +97,7 @@
       "CreateCapsuleRequest": {
         "type": "object",
         "properties": {
-          "slugId": {
+          "slug": {
             "type": "string",
             "minLength": 1,
             "description": "사용자 노출용 slug 식별자",
@@ -123,13 +123,7 @@
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
           }
         },
-        "required": [
-          "slugId",
-          "title",
-          "password",
-          "openAt",
-          "reservationToken"
-        ]
+        "required": ["slug", "title", "password", "openAt", "reservationToken"]
       },
       "CapsuleDetailResponse": {
         "oneOf": [
@@ -140,7 +134,7 @@
                 "type": "string",
                 "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
               },
-              "slugId": {
+              "slug": {
                 "type": "string",
                 "minLength": 1,
                 "description": "사용자 노출용 slug 식별자",
@@ -183,7 +177,7 @@
             },
             "required": [
               "id",
-              "slugId",
+              "slug",
               "title",
               "openAt",
               "expiresAt",
@@ -200,7 +194,7 @@
                 "type": "string",
                 "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
               },
-              "slugId": {
+              "slug": {
                 "type": "string",
                 "minLength": 1,
                 "description": "사용자 노출용 slug 식별자",
@@ -250,7 +244,7 @@
             },
             "required": [
               "id",
-              "slugId",
+              "slug",
               "title",
               "openAt",
               "expiresAt",
@@ -314,7 +308,7 @@
             "type": "string",
             "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
           },
-          "slugId": {
+          "slug": {
             "type": "string",
             "minLength": 1,
             "description": "사용자 노출용 slug 식별자",
@@ -348,7 +342,7 @@
         },
         "required": [
           "id",
-          "slugId",
+          "slug",
           "title",
           "openAt",
           "expiresAt",
@@ -385,14 +379,14 @@
             "enum": [true],
             "example": true
           },
-          "slugId": {
+          "slug": {
             "type": "string",
             "minLength": 1,
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           }
         },
-        "required": ["deleted", "slugId"]
+        "required": ["deleted", "slug"]
       },
       "CreateMessageResponse": {
         "type": "object",
@@ -443,7 +437,7 @@
       "post": {
         "tags": ["Capsule"],
         "summary": "슬러그 예약 생성",
-        "description": "현재 mock 서버에서는 어떤 slugId가 와도 예약 성공 응답을 반환합니다.",
+        "description": "현재 mock 서버에서는 어떤 slug가 와도 예약 성공 응답을 반환합니다.",
         "requestBody": {
           "required": true,
           "content": {
@@ -472,7 +466,7 @@
       "post": {
         "tags": ["Capsule"],
         "summary": "캡슐 생성",
-        "description": "현재 mock 서버에서는 slugId, title, openAt만 응답에 반영하고 password와 reservationToken은 검증하지 않습니다.",
+        "description": "현재 mock 서버에서는 slug, title, openAt만 응답에 반영하고 password와 reservationToken은 검증하지 않습니다.",
         "requestBody": {
           "required": true,
           "content": {
@@ -497,11 +491,11 @@
         }
       }
     },
-    "/capsules/{slugId}": {
+    "/capsules/{slug}": {
       "get": {
         "tags": ["Capsule"],
         "summary": "캡슐 조회",
-        "description": "현재 mock 서버에서는 공개 여부를 시간 대신 slugId로 분기합니다. `opened-capsule` 예시를 사용하면 공개 후 응답을 확인할 수 있습니다.",
+        "description": "현재 mock 서버에서는 공개 여부를 시간 대신 slug로 분기합니다. `opened-capsule` 예시를 사용하면 공개 후 응답을 확인할 수 있습니다.",
         "parameters": [
           {
             "schema": {
@@ -511,8 +505,8 @@
               "example": "our-graduation-2025"
             },
             "required": true,
-            "description": "조회/수정/삭제 대상 캡슐의 slugId",
-            "name": "slugId",
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
             "in": "path"
           }
         ],
@@ -529,7 +523,7 @@
                     "summary": "공개 전 예시",
                     "value": {
                       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-                      "slugId": "our-graduation-2025",
+                      "slug": "our-graduation-2025",
                       "title": "졸업 축하 타임캡슐",
                       "openAt": "2025-12-25T12:00:00.000Z",
                       "expiresAt": "2026-01-01T12:00:00.000Z",
@@ -543,7 +537,7 @@
                     "summary": "공개 후 예시",
                     "value": {
                       "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-                      "slugId": "opened-capsule",
+                      "slug": "opened-capsule",
                       "title": "졸업 축하 타임캡슐",
                       "openAt": "2025-12-25T12:00:00.000Z",
                       "expiresAt": "2026-01-01T12:00:00.000Z",
@@ -580,8 +574,8 @@
               "example": "our-graduation-2025"
             },
             "required": true,
-            "description": "조회/수정/삭제 대상 캡슐의 slugId",
-            "name": "slugId",
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
             "in": "path"
           }
         ],
@@ -611,7 +605,7 @@
       "delete": {
         "tags": ["Capsule"],
         "summary": "캡슐 삭제",
-        "description": "현재 mock 서버에서는 어떤 slugId가 와도 deleted: true 응답을 반환합니다.",
+        "description": "현재 mock 서버에서는 어떤 slug가 와도 deleted: true 응답을 반환합니다.",
         "parameters": [
           {
             "schema": {
@@ -621,8 +615,8 @@
               "example": "our-graduation-2025"
             },
             "required": true,
-            "description": "조회/수정/삭제 대상 캡슐의 slugId",
-            "name": "slugId",
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
             "in": "path"
           }
         ],
@@ -640,7 +634,7 @@
         }
       }
     },
-    "/capsules/{slugId}/verify": {
+    "/capsules/{slug}/verify": {
       "post": {
         "tags": ["Capsule"],
         "summary": "관리자 비밀번호 확인",
@@ -654,8 +648,8 @@
               "example": "our-graduation-2025"
             },
             "required": true,
-            "description": "조회/수정/삭제 대상 캡슐의 slugId",
-            "name": "slugId",
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
             "in": "path"
           }
         ],
@@ -683,7 +677,7 @@
         }
       }
     },
-    "/capsules/{slugId}/messages": {
+    "/capsules/{slug}/messages": {
       "post": {
         "tags": ["Message"],
         "summary": "메시지 작성",
@@ -697,8 +691,8 @@
               "example": "our-graduation-2025"
             },
             "required": true,
-            "description": "조회/수정/삭제 대상 캡슐의 slugId",
-            "name": "slugId",
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
             "in": "path"
           }
         ],

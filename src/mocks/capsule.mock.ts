@@ -19,20 +19,20 @@ export const capsuleMockExamples = {
   reservedUntil: MOCK_RESERVED_UNTIL,
   reservationToken: MOCK_RESERVATION_TOKEN,
   capsuleId: MOCK_CAPSULE_ID,
-  defaultSlugId: "our-graduation-2025",
-  openedSlugId: "opened-capsule",
+  defaultSlug: "our-graduation-2025",
+  openedSlug: "opened-capsule",
   defaultTitle: "졸업 축하 타임캡슐",
   defaultNickname: "익명의 친구",
   defaultMessageContent: "앞으로도 좋은 일만 가득하길 바랄게!",
 } as const;
 
 export const buildCapsuleBaseMock = (input: {
-  slugId?: unknown;
+  slug?: unknown;
   title?: unknown;
   openAt?: unknown;
 }) => ({
   id: MOCK_CAPSULE_ID,
-  slugId: getStringValue(input.slugId, capsuleMockExamples.defaultSlugId),
+  slug: getStringValue(input.slug, capsuleMockExamples.defaultSlug),
   title: getStringValue(input.title, capsuleMockExamples.defaultTitle),
   openAt: getStringValue(input.openAt, MOCK_OPEN_AT),
   expiresAt: MOCK_EXPIRES_AT,
@@ -40,15 +40,15 @@ export const buildCapsuleBaseMock = (input: {
   updatedAt: MOCK_NOW,
 });
 
-export const buildSlugReservationMock = (slugId?: unknown) => ({
-  slugId: getStringValue(slugId, capsuleMockExamples.defaultSlugId),
+export const buildSlugReservationMock = (slug?: unknown) => ({
+  slug: getStringValue(slug, capsuleMockExamples.defaultSlug),
   reservationToken: MOCK_RESERVATION_TOKEN,
   reservedUntil: MOCK_RESERVED_UNTIL,
 });
 
-export const buildCapsuleDetailMock = (slugId: string) => {
-  const capsule = buildCapsuleBaseMock({ slugId });
-  const isOpen = slugId === capsuleMockExamples.openedSlugId;
+export const buildCapsuleDetailMock = (slug: string) => {
+  const capsule = buildCapsuleBaseMock({ slug });
+  const isOpen = slug === capsuleMockExamples.openedSlug;
 
   if (!isOpen) {
     return {
@@ -102,9 +102,9 @@ export const buildVerifyPasswordMock = () => ({
   verified: true,
 });
 
-export const buildDeleteCapsuleMock = (slugId?: unknown) => ({
+export const buildDeleteCapsuleMock = (slug?: unknown) => ({
   deleted: true,
-  slugId: getStringValue(slugId, capsuleMockExamples.defaultSlugId),
+  slug: getStringValue(slug, capsuleMockExamples.defaultSlug),
 });
 
 export const buildMessageMock = (input: {

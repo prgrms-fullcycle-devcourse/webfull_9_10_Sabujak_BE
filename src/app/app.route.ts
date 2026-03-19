@@ -49,10 +49,10 @@ router.get("/", helloWorld);
 router.get("/openapi.json", getOpenApiDocument);
 router.post("/capsules/slug-reservations", createSlugReservation);
 router.post("/capsules", createCapsule);
-router.get("/capsules/:slugId", getCapsule);
-router.post("/capsules/:slugId/verify", verifyCapsulePassword);
-router.patch("/capsules/:slugId", updateCapsule);
-router.delete("/capsules/:slugId", deleteCapsule);
-router.post("/capsules/:slugId/messages", createMessage);
+router.get("/capsules/:slug", getCapsule);
+router.post("/capsules/:slug/verify", verifyCapsulePassword);
+router.patch("/capsules/:slug", updateCapsule);
+router.delete("/capsules/:slug", deleteCapsule);
+router.post("/capsules/:slug/messages", createMessage);
 
 export default router;

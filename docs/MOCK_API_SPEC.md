@@ -19,8 +19,8 @@
 
 ### 1.2 프론트에서 꼭 알아야 하는 임시 규칙
 
-- 캡슐 조회는 `GET /capsules/{slugId}` 한 개 엔드포인트로 공개 전/후 화면을 분기합니다.
-- `slugId`가 정확히 `opened-capsule`일 때만 공개 후 응답이 내려옵니다.
+- 캡슐 조회는 `GET /capsules/{slug}` 한 개 엔드포인트로 공개 전/후 화면을 분기합니다.
+- `slug`가 정확히 `opened-capsule`일 때만 공개 후 응답이 내려옵니다.
 - `opened-capsule`이 아닌 모든 slug는 공개 전 응답이 내려옵니다.
 - 공개 후 응답의 `messages` 배열은 현재 5개 고정입니다.
 - 비밀번호 확인 API는 현재 어떤 값이 와도 항상 성공합니다.
@@ -44,11 +44,11 @@
 | ------- | -------------------- | -------- | ----------------------------- |
 | Capsule | 슬러그 예약 생성     | `POST`   | `/capsules/slug-reservations` |
 | Capsule | 캡슐 생성            | `POST`   | `/capsules`                   |
-| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slugId}`          |
-| Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slugId}/verify`   |
-| Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slugId}`          |
-| Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slugId}`          |
-| Message | 메시지 작성          | `POST`   | `/capsules/{slugId}/messages` |
+| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slug}`            |
+| Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slug}/verify`     |
+| Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slug}`            |
+| Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slug}`            |
+| Message | 메시지 작성          | `POST`   | `/capsules/{slug}/messages`   |
 
 ## 3. 엔드포인트 상세
 
@@ -60,7 +60,7 @@ Request Body
 
 ```json
 {
-  "slugId": "our-graduation-2025"
+  "slug": "our-graduation-2025"
 }
 ```
 
@@ -68,7 +68,7 @@ Response `201 Created`
 
 ```json
 {
-  "slugId": "our-graduation-2025",
+  "slug": "our-graduation-2025",
   "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC",
   "reservedUntil": "2026-03-18T02:10:21.000Z"
 }
@@ -76,8 +76,8 @@ Response `201 Created`
 
 현재 mock 동작:
 
-- `slugId`가 body에 있으면 그대로 응답에 반영합니다.
-- `slugId`가 없으면 기본값 `our-graduation-2025`를 반환합니다.
+- `slug`가 body에 있으면 그대로 응답에 반영합니다.
+- `slug`가 없으면 기본값 `our-graduation-2025`를 반환합니다.
 - 중복 확인 실패, 이미 사용 중인 slug, 토큰 만료 같은 오류 응답은 아직 없습니다.
 
 ### 3.2 캡슐 생성
@@ -88,7 +88,7 @@ Request Body
 
 ```json
 {
-  "slugId": "our-graduation-2025",
+  "slug": "our-graduation-2025",
   "title": "졸업 축하 타임캡슐",
   "password": "1234",
   "openAt": "2025-12-25T12:00:00.000Z",
@@ -101,7 +101,7 @@ Response `201 Created`
 ```json
 {
   "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "slugId": "our-graduation-2025",
+  "slug": "our-graduation-2025",
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
@@ -112,13 +112,13 @@ Response `201 Created`
 
 현재 mock 동작:
 
-- `slugId`, `title`, `openAt`는 body 값이 있으면 그대로 응답에 반영합니다.
+- `slug`, `title`, `openAt`는 body 값이 있으면 그대로 응답에 반영합니다.
 - `password`, `reservationToken`은 현재 응답 생성에는 사용되지 않습니다.
 - body 값이 없으면 아래 기본값을 사용합니다.
 
 ```json
 {
-  "slugId": "our-graduation-2025",
+  "slug": "our-graduation-2025",
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z"
 }
@@ -126,22 +126,22 @@ Response `201 Created`
 
 ### 3.3 캡슐 조회
 
-`GET /capsules/{slugId}`
+`GET /capsules/{slug}`
 
-현재 mock에서는 실제 시간 계산 대신 `slugId` 문자열로 공개 여부를 분기합니다.
+현재 mock에서는 실제 시간 계산 대신 `slug` 문자열로 공개 여부를 분기합니다.
 
 #### 공개 전 응답
 
 조건:
 
-- `slugId !== "opened-capsule"`
+- `slug !== "opened-capsule"`
 
 Response `200 OK`
 
 ```json
 {
   "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "slugId": "our-graduation-2025",
+  "slug": "our-graduation-2025",
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
@@ -154,21 +154,21 @@ Response `200 OK`
 
 현재 mock 동작:
 
-- 응답의 `slugId`는 path param 값을 그대로 씁니다.
+- 응답의 `slug`는 path param 값을 그대로 씁니다.
 - 공개 전 응답에는 `messages` 필드가 없습니다.
 
 #### 공개 후 응답
 
 조건:
 
-- `slugId === "opened-capsule"`
+- `slug === "opened-capsule"`
 
 Response `200 OK`
 
 ```json
 {
   "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "slugId": "opened-capsule",
+  "slug": "opened-capsule",
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
@@ -218,7 +218,7 @@ Response `200 OK`
 
 ### 3.4 관리자 비밀번호 확인
 
-`POST /capsules/{slugId}/verify`
+`POST /capsules/{slug}/verify`
 
 Request Body
 
@@ -238,11 +238,11 @@ Response `200 OK`
 
 현재 mock 동작:
 
-- `slugId`, `password` 값과 무관하게 항상 성공 응답을 반환합니다.
+- `slug`, `password` 값과 무관하게 항상 성공 응답을 반환합니다.
 
 ### 3.5 캡슐 수정
 
-`PATCH /capsules/{slugId}`
+`PATCH /capsules/{slug}`
 
 Request Body
 
@@ -259,7 +259,7 @@ Response `200 OK`
 ```json
 {
   "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-  "slugId": "our-graduation-2025",
+  "slug": "our-graduation-2025",
   "title": "수정된 졸업 축하 방",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
@@ -270,30 +270,30 @@ Response `200 OK`
 
 현재 mock 동작:
 
-- `slugId`는 path param 값을 사용합니다.
+- `slug`는 path param 값을 사용합니다.
 - `title`, `openAt`는 body 값이 있으면 그대로 반영합니다.
 - `password`는 아직 검증에 사용되지 않습니다.
 
 ### 3.6 캡슐 삭제
 
-`DELETE /capsules/{slugId}`
+`DELETE /capsules/{slug}`
 
 Response `200 OK`
 
 ```json
 {
   "deleted": true,
-  "slugId": "our-graduation-2025"
+  "slug": "our-graduation-2025"
 }
 ```
 
 현재 mock 동작:
 
-- 요청한 `slugId`를 그대로 응답에 담아 반환합니다.
+- 요청한 `slug`를 그대로 응답에 담아 반환합니다.
 
 ### 3.7 메시지 작성
 
-`POST /capsules/{slugId}/messages`
+`POST /capsules/{slug}/messages`
 
 Request Body
 

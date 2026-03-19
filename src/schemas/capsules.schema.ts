@@ -6,9 +6,9 @@ const isoDateTimeStringSchema = z
   .datetime()
   .openapi({ example: capsuleMockExamples.now });
 
-const slugIdSchema = z.string().min(1).openapi({
+const slugSchema = z.string().min(1).openapi({
   description: "사용자 노출용 slug 식별자",
-  example: capsuleMockExamples.defaultSlugId,
+  example: capsuleMockExamples.defaultSlug,
 });
 
 const titleSchema = z.string().min(1).openapi({
@@ -29,7 +29,7 @@ const messageContentSchema = z.string().min(1).openapi({
 
 const capsuleBaseResponseShape = {
   id: z.string().openapi({ example: capsuleMockExamples.capsuleId }),
-  slugId: slugIdSchema,
+  slug: slugSchema,
   title: titleSchema,
   openAt: isoDateTimeStringSchema.openapi({
     example: capsuleMockExamples.openAt,
@@ -51,12 +51,12 @@ const capsuleBaseResponseSchema = z
 
 export const capsuleSlugParamsSchema = z
   .object({
-    slugId: slugIdSchema.openapi({
+    slug: slugSchema.openapi({
       param: {
-        name: "slugId",
+        name: "slug",
         in: "path",
         required: true,
-        description: "조회/수정/삭제 대상 캡슐의 slugId",
+        description: "조회/수정/삭제 대상 캡슐의 slug",
       },
     }),
   })
@@ -64,13 +64,13 @@ export const capsuleSlugParamsSchema = z
 
 export const createSlugReservationBodySchema = z
   .object({
-    slugId: slugIdSchema,
+    slug: slugSchema,
   })
   .openapi("CreateSlugReservationRequest");
 
 export const slugReservationResponseSchema = z
   .object({
-    slugId: slugIdSchema,
+    slug: slugSchema,
     reservationToken: z.string().openapi({
       example: capsuleMockExamples.reservationToken,
     }),
@@ -82,7 +82,7 @@ export const slugReservationResponseSchema = z
 
 export const createCapsuleBodySchema = z
   .object({
-    slugId: slugIdSchema,
+    slug: slugSchema,
     title: titleSchema,
     password: passwordSchema,
     openAt: isoDateTimeStringSchema.openapi({
@@ -184,7 +184,7 @@ export const updateCapsuleResponseSchema = capsuleBaseResponseSchema.openapi(
 export const deleteCapsuleResponseSchema = z
   .object({
     deleted: z.literal(true).openapi({ example: true }),
-    slugId: slugIdSchema,
+    slug: slugSchema,
   })
   .openapi("DeleteCapsuleResponse");
 
