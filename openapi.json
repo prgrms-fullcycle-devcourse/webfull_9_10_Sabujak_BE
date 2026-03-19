@@ -1,0 +1,724 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sabujak Mock API",
+    "version": "1.0.0",
+    "description": "프론트엔드 Orval 연동과 mock API 실험을 위한 OpenAPI 문서입니다."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "SlugReservationResponse": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          },
+          "reservationToken": {
+            "type": "string",
+            "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
+          },
+          "reservedUntil": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-18T02:10:21.000Z"
+          }
+        },
+        "required": ["slug", "reservationToken", "reservedUntil"]
+      },
+      "CreateSlugReservationRequest": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          }
+        },
+        "required": ["slug"]
+      },
+      "CreateCapsuleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "졸업 축하 타임캡슐"
+          },
+          "openAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-25T12:00:00.000Z"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T12:00:00.000Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "openAt",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateCapsuleRequest": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "졸업 축하 타임캡슐"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "example": "1234"
+          },
+          "openAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-25T12:00:00.000Z"
+          },
+          "reservationToken": {
+            "type": "string",
+            "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
+          }
+        },
+        "required": ["slug", "title", "password", "openAt", "reservationToken"]
+      },
+      "CapsuleDetailResponse": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+              },
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "description": "사용자 노출용 slug 식별자",
+                "example": "our-graduation-2025"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "example": "졸업 축하 타임캡슐"
+              },
+              "openAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-12-25T12:00:00.000Z"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-01-01T12:00:00.000Z"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-03-18T02:05:21.000Z"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-03-18T02:05:21.000Z"
+              },
+              "isOpen": {
+                "type": "boolean",
+                "enum": [false],
+                "example": false
+              },
+              "messageCount": {
+                "type": "integer",
+                "example": 12
+              }
+            },
+            "required": [
+              "id",
+              "slug",
+              "title",
+              "openAt",
+              "expiresAt",
+              "createdAt",
+              "updatedAt",
+              "isOpen",
+              "messageCount"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+              },
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "description": "사용자 노출용 slug 식별자",
+                "example": "our-graduation-2025"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "example": "졸업 축하 타임캡슐"
+              },
+              "openAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-12-25T12:00:00.000Z"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-01-01T12:00:00.000Z"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-03-18T02:05:21.000Z"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-01T10:00:00.000Z"
+              },
+              "isOpen": {
+                "type": "boolean",
+                "enum": [true],
+                "example": true
+              },
+              "messageCount": {
+                "type": "integer",
+                "example": 5
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CapsuleMessage"
+                },
+                "description": "공개 후 내려오는 메시지 목록"
+              }
+            },
+            "required": [
+              "id",
+              "slug",
+              "title",
+              "openAt",
+              "expiresAt",
+              "createdAt",
+              "updatedAt",
+              "isOpen",
+              "messageCount",
+              "messages"
+            ]
+          }
+        ]
+      },
+      "CapsuleMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "nickname": {
+            "type": "string",
+            "example": "익명의 멘토"
+          },
+          "content": {
+            "type": "string",
+            "example": "졸업을 진심으로 축하합니다!"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-24T15:30:00.000Z"
+          }
+        },
+        "required": ["id", "nickname", "content", "createdAt"]
+      },
+      "VerifyCapsulePasswordResponse": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": ["verified"]
+      },
+      "VerifyCapsulePasswordRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "example": "1234"
+          }
+        },
+        "required": ["password"]
+      },
+      "UpdateCapsuleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "졸업 축하 타임캡슐"
+          },
+          "openAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-25T12:00:00.000Z"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T12:00:00.000Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "openAt",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateCapsuleRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "example": "1234"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "졸업 축하 타임캡슐"
+          },
+          "openAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-25T12:00:00.000Z"
+          }
+        },
+        "required": ["password", "title", "openAt"]
+      },
+      "DeleteCapsuleResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "enum": [true],
+            "example": true
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          }
+        },
+        "required": ["deleted", "slug"]
+      },
+      "CreateMessageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 13
+          },
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "example": "익명의 친구"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "example": "앞으로도 좋은 일만 가득하길 바랄게!"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          }
+        },
+        "required": ["id", "nickname", "content", "createdAt"]
+      },
+      "CreateMessageRequest": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "example": "익명의 친구"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "example": "앞으로도 좋은 일만 가득하길 바랄게!"
+          }
+        },
+        "required": ["nickname", "content"]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/capsules/slug-reservations": {
+      "post": {
+        "tags": ["Capsule"],
+        "summary": "슬러그 예약 생성",
+        "description": "현재 mock 서버에서는 어떤 slug가 와도 예약 성공 응답을 반환합니다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSlugReservationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "슬러그 예약 생성 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlugReservationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capsules": {
+      "post": {
+        "tags": ["Capsule"],
+        "summary": "캡슐 생성",
+        "description": "현재 mock 서버에서는 slug, title, openAt만 응답에 반영하고 password와 reservationToken은 검증하지 않습니다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCapsuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "캡슐 생성 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCapsuleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capsules/{slug}": {
+      "get": {
+        "tags": ["Capsule"],
+        "summary": "캡슐 조회",
+        "description": "현재 mock 서버에서는 공개 여부를 시간 대신 slug로 분기합니다. `opened-capsule` 예시를 사용하면 공개 후 응답을 확인할 수 있습니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "공개 전 또는 공개 후 캡슐 응답",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapsuleDetailResponse"
+                },
+                "examples": {
+                  "closed": {
+                    "summary": "공개 전 예시",
+                    "value": {
+                      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                      "slug": "our-graduation-2025",
+                      "title": "졸업 축하 타임캡슐",
+                      "openAt": "2025-12-25T12:00:00.000Z",
+                      "expiresAt": "2026-01-01T12:00:00.000Z",
+                      "createdAt": "2025-03-18T02:05:21.000Z",
+                      "updatedAt": "2025-03-18T02:05:21.000Z",
+                      "isOpen": false,
+                      "messageCount": 12
+                    }
+                  },
+                  "opened": {
+                    "summary": "공개 후 예시",
+                    "value": {
+                      "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                      "slug": "opened-capsule",
+                      "title": "졸업 축하 타임캡슐",
+                      "openAt": "2025-12-25T12:00:00.000Z",
+                      "expiresAt": "2026-01-01T12:00:00.000Z",
+                      "createdAt": "2025-03-18T02:05:21.000Z",
+                      "updatedAt": "2025-06-01T10:00:00.000Z",
+                      "isOpen": true,
+                      "messageCount": 5,
+                      "messages": [
+                        {
+                          "id": 1,
+                          "nickname": "익명의 멘토",
+                          "content": "졸업을 진심으로 축하합니다!",
+                          "createdAt": "2025-12-24T15:30:00.000Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Capsule"],
+        "summary": "캡슐 수정",
+        "description": "현재 mock 서버에서는 title, openAt만 응답에 반영하고 password는 검증하지 않습니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCapsuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "캡슐 수정 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateCapsuleResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Capsule"],
+        "summary": "캡슐 삭제",
+        "description": "현재 mock 서버에서는 어떤 slug가 와도 deleted: true 응답을 반환합니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "캡슐 삭제 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteCapsuleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capsules/{slug}/verify": {
+      "post": {
+        "tags": ["Capsule"],
+        "summary": "관리자 비밀번호 확인",
+        "description": "현재 mock 서버에서는 어떤 password가 와도 항상 verified: true를 반환합니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyCapsulePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "비밀번호 확인 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyCapsulePasswordResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capsules/{slug}/messages": {
+      "post": {
+        "tags": ["Message"],
+        "summary": "메시지 작성",
+        "description": "현재 mock 서버에서는 nickname과 content를 그대로 응답에 반영하고, 없으면 기본값을 사용합니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "메시지 작성 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateMessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

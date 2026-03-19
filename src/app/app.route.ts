@@ -1,11 +1,13 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
 import {
   createCapsule,
   createMessage,
   createSlugReservation,
   deleteCapsule,
   getCapsule,
+  getOpenApiDocument,
   healthCheck,
   helloWorld,
   updateCapsule,
@@ -45,12 +47,23 @@ router.get("/healthCheck", healthCheckLimiter, healthCheck);
 router.use(globalApiLimiter);
 
 router.get("/", helloWorld);
+router.get("/openapi.json", getOpenApiDocument);
+router.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(undefined, {
+    customSiteTitle: "Sabujak API Docs",
+    swaggerOptions: {
+      url: "/openapi.json",
+    },
+  }),
+);
 router.post("/capsules/slug-reservations", createSlugReservation);
 router.post("/capsules", createCapsule);
-router.get("/capsules/:slugId", getCapsule);
-router.post("/capsules/:slugId/verify", verifyCapsulePassword);
-router.patch("/capsules/:slugId", updateCapsule);
-router.delete("/capsules/:slugId", deleteCapsule);
-router.post("/capsules/:slugId/messages", createMessage);
+router.get("/capsules/:slug", getCapsule);
+router.post("/capsules/:slug/verify", verifyCapsulePassword);
+router.patch("/capsules/:slug", updateCapsule);
+router.delete("/capsules/:slug", deleteCapsule);
+router.post("/capsules/:slug/messages", createMessage);
 
 export default router;

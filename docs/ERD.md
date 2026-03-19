@@ -99,5 +99,5 @@ erDiagram
 
 - 내부 참조와 조인은 `capsules.id`를 기준으로 수행합니다.
 - 사용자 노출 식별자는 `capsules.slug_id`입니다.
-- API 문서의 `slugId`, `openAt`, `expiresAt`, `createdAt`, `updatedAt`은 각각 DB의 `slug_id`, `open_at`, `expires_at`, `created_at`, `updated_at`에 대응합니다.
+- API 문서의 `slug`, `openAt`, `expiresAt`, `createdAt`, `updatedAt`은 각각 DB의 `slug_id`, `open_at`, `expires_at`, `created_at`, `updated_at`에 대응합니다.
 - 공개 후 캡슐 조회 응답은 별도 메시지 조회 엔드포인트 대신 `messages` 배열을 함께 포함할 수 있습니다.
