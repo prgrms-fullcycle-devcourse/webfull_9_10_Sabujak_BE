@@ -23,6 +23,9 @@ dependencies:
   pg:
     specifier: ^8.20.0
     version: 8.20.0
+  swagger-ui-express:
+    specifier: ^5.0.1
+    version: 5.0.1(express@5.2.1)
   zod:
     specifier: ^4.3.6
     version: 4.3.6
@@ -46,6 +49,9 @@ devDependencies:
   '@types/pg':
     specifier: ^8.18.0
     version: 8.18.0
+  '@types/swagger-ui-express':
+    specifier: ^4.1.8
+    version: 4.1.8
   eslint:
     specifier: ^10.0.3
     version: 10.0.3
@@ -404,6 +410,11 @@ packages:
     engines: {node: '>=18.18'}
     dev: true
 
+  /@scarf/scarf@1.4.0:
+    resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
+    requiresBuild: true
+    dev: false
+
   /@types/body-parser@1.19.6:
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
     dependencies:
@@ -498,6 +509,13 @@ packages:
     dependencies:
       '@types/http-errors': 2.0.5
       '@types/node': 20.19.37
+    dev: true
+
+  /@types/swagger-ui-express@4.1.8:
+    resolution: {integrity: sha512-AhZV8/EIreHFmBV5wAs0gzJUNq9JbbSXgJLQubCC0jtIo6prnI9MIRRxnU4MZX9RB9yXxF1V4R7jtLl/Wcj31g==}
+    dependencies:
+      '@types/express': 5.0.6
+      '@types/serve-static': 2.2.0
     dev: true
 
   /@typescript-eslint/eslint-plugin@8.57.0(@typescript-eslint/parser@8.57.0)(eslint@10.0.3)(typescript@5.9.3):
@@ -1862,6 +1880,22 @@ packages:
     resolution: {integrity: sha512-dOESqjYr96iWYylGObzd39EuNTa5VJxyvVAEm5Jnh7KGo75V43Hk1odPQkNDyXNmUR6k+gEiDVXnjB8HJ3crXw==}
     engines: {node: '>=12'}
     dev: true
+
+  /swagger-ui-dist@5.32.1:
+    resolution: {integrity: sha512-6HQoo7+j8PA2QqP5kgAb9dl1uxUjvR0SAoL/WUp1sTEvm0F6D5npgU2OGCLwl++bIInqGlEUQ2mpuZRZYtyCzQ==}
+    dependencies:
+      '@scarf/scarf': 1.4.0
+    dev: false
+
+  /swagger-ui-express@5.0.1(express@5.2.1):
+    resolution: {integrity: sha512-SrNU3RiBGTLLmFU8GIJdOdanJTl4TOmT27tt3bWWHppqYmAZ6IDuEuBvMU6nZq0zLEe6b/1rACXCgLZqO6ZfrA==}
+    engines: {node: '>= v0.10.32'}
+    peerDependencies:
+      express: '>=4.0.0 || >=5.0.0-beta'
+    dependencies:
+      express: 5.2.1
+      swagger-ui-dist: 5.32.1
+    dev: false
 
   /tinyglobby@0.2.15:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}

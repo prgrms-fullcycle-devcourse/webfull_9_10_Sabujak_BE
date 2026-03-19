@@ -1,5 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
 import {
   createCapsule,
   createMessage,
@@ -47,6 +48,16 @@ router.use(globalApiLimiter);
 
 router.get("/", helloWorld);
 router.get("/openapi.json", getOpenApiDocument);
+router.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(undefined, {
+    customSiteTitle: "Sabujak API Docs",
+    swaggerOptions: {
+      url: "/openapi.json",
+    },
+  }),
+);
 router.post("/capsules/slug-reservations", createSlugReservation);
 router.post("/capsules", createCapsule);
 router.get("/capsules/:slug", getCapsule);

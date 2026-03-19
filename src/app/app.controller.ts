@@ -87,6 +87,6 @@ export const createMessage = (req: Request, res: Response) => {
   res.status(201).json(createMessageResponseSchema.parse(payload));
 };
 
-export function getOpenApiDocument(req: Request, res: Response) {
+export const getOpenApiDocument = (req: Request, res: Response) => {
   res.sendFile(path.resolve(process.cwd(), "openapi.json"));
-}
+};
