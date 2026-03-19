@@ -6,6 +6,7 @@ import {
   createSlugReservation,
   deleteCapsule,
   getCapsule,
+  getOpenApiDocument,
   healthCheck,
   helloWorld,
   updateCapsule,
@@ -45,6 +46,7 @@ router.get("/healthCheck", healthCheckLimiter, healthCheck);
 router.use(globalApiLimiter);
 
 router.get("/", helloWorld);
+router.get("/openapi.json", getOpenApiDocument);
 router.post("/capsules/slug-reservations", createSlugReservation);
 router.post("/capsules", createCapsule);
 router.get("/capsules/:slugId", getCapsule);
