@@ -9,9 +9,11 @@
     "dev": "tsx watch src/index.ts",
     "build": "rm -rf dist && tsc",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
     "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
     "lint:fix": "eslint \"src/**/*.ts\" --fix --no-error-on-unmatched-pattern",
+    "openapi:generate": "node --import tsx scripts/generate-openapi.ts",
+    "openapi:check": "node --import tsx scripts/check-openapi.ts",
     "prepare": "husky",
     "test:rate-limit": "bash scripts/test-rate-limit.sh"
   },
@@ -41,10 +43,12 @@
     "typescript-eslint": "^8.57.0"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "zod": "^4.3.6"
   }
 }
