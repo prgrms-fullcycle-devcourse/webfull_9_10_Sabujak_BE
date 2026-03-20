@@ -18,6 +18,7 @@ import {
   verifyPasswordResponseSchema,
 } from "../schemas/capsules.schema";
 import { openApiDocument } from "../openapi/registry";
+import { getRedisClient, isRedisConfigured } from "../redis";
 
 const getSlugParam = (slug: string | string[] | undefined) =>
   Array.isArray(slug) ? slug[0] : slug;
@@ -29,8 +30,17 @@ export const helloWorld = (req: Request, res: Response) => {
 export const healthCheck = async (req: Request, res: Response) => {
   try {
     await pool.query("SELECT 1");
+    const redisClient = getRedisClient();
+
+    if (redisClient) {
+      await redisClient.ping();
+    }
+
     res.status(200).send("healthCheck: OK");
   } catch {
+    console.error(
+      `[healthCheck] failed redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
+    );
     res.status(500).send("healthCheck: false");
   }
 };
