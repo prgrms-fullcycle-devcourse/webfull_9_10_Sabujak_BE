@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import pool from "./db";
+import pool from "../db";
 import { getFormattedMemoryUsage } from "../middlewares/memory-logger";
 import {
   buildCapsuleBaseMock,
