@@ -2,7 +2,6 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import appRouter from "./app/app.route";
-import { memoryLogger } from "./middlewares/memory-logger";
 
 const app = express();
 const PORT = process.env.API_PORT || 3000;
@@ -21,7 +20,6 @@ app.use(
     origin: allowedOrigins,
   }),
 );
-app.use(memoryLogger);
 app.use("/", appRouter);
 
 app.listen(PORT, () => {

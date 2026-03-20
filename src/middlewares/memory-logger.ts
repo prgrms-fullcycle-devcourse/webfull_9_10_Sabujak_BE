@@ -1,6 +1,4 @@
-import { NextFunction, Request, Response } from "express";
-
-const formatMemoryUsage = () => {
+export const getFormattedMemoryUsage = () => {
   const used = process.memoryUsage();
 
   return {
@@ -10,21 +8,3 @@ const formatMemoryUsage = () => {
     externalMb: Math.round(used.external / 1024 / 1024),
   };
 };
-
-export const memoryLogger = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  res.on("finish", () => {
-    const memory = formatMemoryUsage();
-
-    console.log(
-      `[memory] ${req.method} ${req.originalUrl} ${res.statusCode} rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB`,
-    );
-  });
-
-  next();
-};
-
-export const getFormattedMemoryUsage = formatMemoryUsage;
