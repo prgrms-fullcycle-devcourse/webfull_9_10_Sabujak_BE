@@ -90,7 +90,7 @@ erDiagram
 
 ## Recommended Indexes
 
-- `capsules(slug_id)` unique index
+- `capsules(slug)` unique index
 - `capsules(expires_at)` index
 - `messages(capsule_id, nickname)` unique index
 - `messages(capsule_id, id)` index
