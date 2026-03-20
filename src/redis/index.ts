@@ -16,7 +16,6 @@ export const getRedisClient = () => {
     redisClient = new Redis({
       url: redisUrl,
       token: redisToken,
-      keepAlive: true,
     });
   }
 
