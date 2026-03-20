@@ -11,8 +11,8 @@ CREATE TABLE capsules (
     CONSTRAINT PK_CAPSULES PRIMARY KEY (id),
     CONSTRAINT UK_CAPSULES_SLUG UNIQUE (slug)
 );
--- expires_at 조회할 사항이 많기 때문에 index 걸기
-CREATE INDEX idx_capsules_expires_at ON capsules (expires_at);
+-- expires_at 조회할 사항이 많기 때문에 index 걸기 & 캡슐 만료일 조회 성능 최적화
+CREATE INDEX CONCURRENTLY idx_capsules_expires_at ON capsules (expires_at);
 
 -- Messages Table
 CREATE TABLE messages (
