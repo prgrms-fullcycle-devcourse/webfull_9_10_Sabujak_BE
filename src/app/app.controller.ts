@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import pool from "../db";
+import { getFormattedMemoryUsage } from "../middlewares/memory-logger";
 import {
   buildCapsuleBaseMock,
   buildCapsuleDetailMock,
@@ -36,10 +37,15 @@ export const healthCheck = async (req: Request, res: Response) => {
       await redisClient.ping();
     }
 
+    const memory = getFormattedMemoryUsage();
+    console.log(
+      `[healthCheck] ok rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
+    );
     res.status(200).send("healthCheck: OK");
   } catch {
+    const memory = getFormattedMemoryUsage();
     console.error(
-      `[healthCheck] failed redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
+      `[healthCheck] failed rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
     );
     res.status(500).send("healthCheck: false");
   }
