@@ -19,6 +19,7 @@ import {
   verifyPasswordResponseSchema,
 } from "../schemas/capsules.schema";
 import { openApiDocument } from "../openapi/registry";
+import { getRedisClient, isRedisConfigured } from "../redis";
 
 const getSlugParam = (slug: string | string[] | undefined) =>
   Array.isArray(slug) ? slug[0] : slug;
@@ -30,6 +31,7 @@ export const helloWorld = (req: Request, res: Response) => {
 export const healthCheck = async (req: Request, res: Response) => {
   try {
     await pool.query("SELECT 1");
+<<<<<<< codex/issue-35-memory-logging
     const memory = getFormattedMemoryUsage();
     console.log(
       `[healthCheck] ok rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB`,
@@ -39,6 +41,18 @@ export const healthCheck = async (req: Request, res: Response) => {
     const memory = getFormattedMemoryUsage();
     console.error(
       `[healthCheck] failed rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB`,
+=======
+    const redisClient = getRedisClient();
+
+    if (redisClient) {
+      await redisClient.ping();
+    }
+
+    res.status(200).send("healthCheck: OK");
+  } catch {
+    console.error(
+      `[healthCheck] failed redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
+>>>>>>> main
     );
     res.status(500).send("healthCheck: false");
   }
