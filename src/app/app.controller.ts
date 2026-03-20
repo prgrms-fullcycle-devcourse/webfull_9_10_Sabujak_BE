@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import pool from "./db";
+import { getFormattedMemoryUsage } from "../middlewares/memory-logger";
 import {
   buildCapsuleBaseMock,
   buildCapsuleDetailMock,
@@ -29,8 +30,16 @@ export const helloWorld = (req: Request, res: Response) => {
 export const healthCheck = async (req: Request, res: Response) => {
   try {
     await pool.query("SELECT 1");
+    const memory = getFormattedMemoryUsage();
+    console.log(
+      `[healthCheck] ok rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB`,
+    );
     res.status(200).send("healthCheck: OK");
   } catch {
+    const memory = getFormattedMemoryUsage();
+    console.error(
+      `[healthCheck] failed rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB`,
+    );
     res.status(500).send("healthCheck: false");
   }
 };
