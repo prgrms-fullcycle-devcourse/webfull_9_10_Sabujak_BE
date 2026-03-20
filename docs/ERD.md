@@ -15,7 +15,7 @@
 erDiagram
     capsules {
         char(26) id PK "시스템 고유 ID (ULID)"
-        varchar(50) slug_id UK "사용자 노출용 slug 식별자"
+        varchar(50) slug UK "사용자 노출용 slug 식별자"
         varchar(100) title "방 제목"
         timestamptz open_at "공개 일시"
         timestamptz expires_at "만료 일시 (open_at + 7일)"
@@ -42,7 +42,7 @@ erDiagram
 | Field         | Type         | Key   | Description                                              |
 | ------------- | ------------ | ----- | -------------------------------------------------------- |
 | id            | char(26)     | PK    | 시스템 고유 ID (ULID)                                    |
-| slug_id       | varchar(50)  | UK    | 사용자 지정 커스텀 URL                                   |
+| slug          | varchar(50)  | UK    | 사용자 지정 커스텀 URL                                   |
 | title         | varchar(100) | -     | 방 제목                                                  |
 | open_at       | timestamptz  | -     | 공개 일시                                                |
 | expires_at    | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`)                              |
@@ -52,7 +52,7 @@ erDiagram
 
 제약 및 규칙:
 
-- `slug_id`는 unique constraint가 필요합니다.
+- `slug`는 unique constraint가 필요합니다.
 - `expires_at`는 생성 시 계산 저장하며, `open_at` 변경 시 함께 재계산합니다.
 - `password_hash`는 캡슐 관리자용 숫자 4자리 비밀번호 원문을 저장 전 hash 처리한 값을 저장합니다.
 
@@ -98,6 +98,6 @@ erDiagram
 ## Notes
 
 - 내부 참조와 조인은 `capsules.id`를 기준으로 수행합니다.
-- 사용자 노출 식별자는 `capsules.slug_id`입니다.
-- API 문서의 `slug`, `openAt`, `expiresAt`, `createdAt`, `updatedAt`은 각각 DB의 `slug_id`, `open_at`, `expires_at`, `created_at`, `updated_at`에 대응합니다.
+- 사용자 노출 식별자는 `capsules.slug`입니다.
+- API 문서의 `slug`, `openAt`, `expiresAt`, `createdAt`, `updatedAt`은 각각 DB의 `slug`, `open_at`, `expires_at`, `created_at`, `updated_at`에 대응합니다.
 - 공개 후 캡슐 조회 응답은 별도 메시지 조회 엔드포인트 대신 `messages` 배열을 함께 포함할 수 있습니다.
