@@ -1,15 +1,57 @@
 import { Redis } from "@upstash/redis";
+import { createClient } from "redis";
 
+const localRedisUrl = process.env.REDIS_URL?.trim();
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 
-export const isRedisConfigured = Boolean(redisUrl && redisToken);
+const isLocalRedisConfigured = Boolean(localRedisUrl);
+const isUpstashRedisConfigured = Boolean(redisUrl && redisToken);
 
-let redisClient: Redis | null = null;
+export const isRedisConfigured =
+  isLocalRedisConfigured || isUpstashRedisConfigured;
 
-export const getRedisClient = () => {
+export type AppRedisClient = {
+  ping: () => Promise<unknown>;
+};
+
+let redisClient: AppRedisClient | null = null;
+let redisConnectionPromise: Promise<AppRedisClient> | null = null;
+
+export const getRedisClient = async (): Promise<AppRedisClient | null> => {
   if (!isRedisConfigured) {
     return null;
+  }
+
+  if (redisClient) {
+    return redisClient;
+  }
+
+  if (redisConnectionPromise) {
+    return redisConnectionPromise;
+  }
+
+  if (isLocalRedisConfigured && localRedisUrl) {
+    const client = createClient({
+      url: localRedisUrl,
+    });
+
+    client.on("error", (error) => {
+      console.error("[redis] local redis connection error", error);
+    });
+
+    redisConnectionPromise = client
+      .connect()
+      .then(() => {
+        redisClient = client;
+        return client;
+      })
+      .catch((error) => {
+        redisConnectionPromise = null;
+        throw error;
+      });
+
+    return redisConnectionPromise;
   }
 
   if (!redisClient) {
@@ -22,12 +64,12 @@ export const getRedisClient = () => {
   return redisClient;
 };
 
-export const requireRedisClient = () => {
-  const client = getRedisClient();
+export const requireRedisClient = async () => {
+  const client = await getRedisClient();
 
   if (!client) {
     throw new Error(
-      "Upstash Redis is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",
+      "Redis is not configured. Set REDIS_URL for local Redis or UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for Upstash Redis.",
     );
   }
 

@@ -11,12 +11,15 @@ services:
       - .env
     environment:
       - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-false}
+      - REDIS_URL=redis://redis:6379
     volumes:
       - ./src:/app/src
     networks:
       - sabujak_net
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   db:
@@ -36,9 +39,25 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - sabujak_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 networks:
   sabujak_net:
     driver: bridge
 
 volumes:
   postgres_data:
+  redis_data:
