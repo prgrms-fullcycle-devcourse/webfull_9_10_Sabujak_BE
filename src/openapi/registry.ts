@@ -17,7 +17,7 @@ import {
   updateCapsuleResponseSchema,
   verifyPasswordBodySchema,
   verifyPasswordResponseSchema,
-} from "../schemas/capsules.schema";
+} from "../modules/capsules/dto";
 
 const registry = new OpenAPIRegistry();
 

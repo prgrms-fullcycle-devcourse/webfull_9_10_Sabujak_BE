@@ -44,4 +44,4 @@ USER node
 EXPOSE 3000
 
 # 트랜스파일링된 결과물 실행
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]
