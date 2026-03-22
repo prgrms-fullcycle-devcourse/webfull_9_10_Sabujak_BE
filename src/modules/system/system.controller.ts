@@ -13,7 +13,7 @@ export const helloWorld = (req: Request, res: Response) => {
 export const healthCheck = async (req: Request, res: Response) => {
   try {
     await pool.query("SELECT 1");
-    const redisClient = getRedisClient();
+    const redisClient = await getRedisClient();
 
     if (redisClient) {
       await redisClient.ping();
