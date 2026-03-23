@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - feature/capsules-error-input-foundation
 
 # 워크플로우에 부여되는 기본 권한을 최소화 (읽기 전용)
 permissions:
@@ -42,15 +43,17 @@ jobs:
       - name: Security Audit
         run: pnpm audit --prod
 
+      - name: Type check
+        run: pnpm typecheck
+
       - name: Lint code
         run: pnpm lint
 
-      # TODO: 비즈니스 로직 개발 및 Jest/Supertest 세팅 완료 후 아래 주석 해제
-      # - name: Run Unit Tests
-      #   run: pnpm test
-      #
-      # - name: Run E2E Tests
-      #   run: pnpm test:e2e
+      - name: Run Unit Tests
+        run: pnpm test:unit
+
+      - name: Check OpenAPI
+        run: pnpm openapi:check
 
       - name: Build project
         run: pnpm build
