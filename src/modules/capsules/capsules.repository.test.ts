@@ -1,4 +1,8 @@
 import {
+  CapsuleExpiredException,
+  CapsuleNotFoundException,
+  DuplicateNicknameException,
+  MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
 } from "../../common/exceptions/domain-exception";
@@ -12,6 +16,7 @@ jest.mock("../../db", () => ({
       },
     },
     insert: jest.fn(),
+    update: jest.fn(),
   },
 }));
 
@@ -29,6 +34,7 @@ const { db } = jest.requireMock("../../db") as {
       };
     };
     insert: jest.Mock;
+    update: jest.Mock;
   };
 };
 
@@ -43,6 +49,10 @@ const {
 };
 
 describe("CapsulesRepository", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe("createSlugReservation", () => {
     it("DB에 같은 slug가 있으면 SlugAlreadyInUseException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({ id: "existing" });
@@ -187,6 +197,121 @@ describe("CapsulesRepository", () => {
           reservationToken: "valid-token",
         }),
       ).rejects.toBeInstanceOf(SlugAlreadyInUseException);
+    });
+  });
+
+  describe("createMessage", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "missing-capsule",
+          nickname: "작성자",
+          content: "메시지",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: new Date("2026-03-22T00:00:00.000Z"),
+        messages: [],
+      });
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "expired-capsule",
+          nickname: "작성자",
+          content: "메시지",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleExpiredException);
+    });
+
+    it("메시지가 300개면 MessageLimitExceededException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: new Date("2026-03-24T00:00:00.000Z"),
+        messages: Array.from({ length: 300 }, (_, index) => ({ id: index + 1 })),
+      });
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "full-capsule",
+          nickname: "작성자",
+          content: "메시지",
+        }),
+      ).rejects.toBeInstanceOf(MessageLimitExceededException);
+    });
+
+    it("정상 요청이면 메시지를 저장하고 capsule.updatedAt을 함께 갱신한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: new Date("2026-03-24T00:00:00.000Z"),
+        messages: [{ id: 1 }],
+      });
+
+      const messageReturningMock = jest.fn().mockResolvedValue([
+        {
+          id: 13,
+          nickname: "익명의 멘토",
+          content: "졸업을 진심으로 축하합니다!",
+          createdAt: new Date("2026-03-23T10:00:00.000Z"),
+        },
+      ]);
+      const messageValuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: messageReturningMock });
+      db.insert.mockReturnValue({ values: messageValuesMock });
+
+      const updateWhereMock = jest.fn().mockResolvedValue(undefined);
+      const updateSetMock = jest.fn().mockReturnValue({ where: updateWhereMock });
+      db.update.mockReturnValue({ set: updateSetMock });
+
+      const result = await capsulesRepository.createMessage({
+        slug: "opened-capsule",
+        nickname: "익명의 멘토",
+        content: "졸업을 진심으로 축하합니다!",
+      });
+
+      expect(messageValuesMock).toHaveBeenCalledWith({
+        capsuleId: "01TESTCAPSULEID123456789012",
+        nickname: "익명의 멘토",
+        content: "졸업을 진심으로 축하합니다!",
+      });
+      expect(db.update).toHaveBeenCalled();
+      expect(updateSetMock).toHaveBeenCalledWith({
+        updatedAt: new Date("2026-03-23T10:00:00.000Z"),
+      });
+      expect(result).toEqual({
+        id: 13,
+        nickname: "익명의 멘토",
+        content: "졸업을 진심으로 축하합니다!",
+        createdAt: "2026-03-23T10:00:00.000Z",
+      });
+    });
+
+    it("메시지 insert에서 unique constraint 충돌이면 DuplicateNicknameException으로 변환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: new Date("2026-03-24T00:00:00.000Z"),
+        messages: [],
+      });
+
+      const messageReturningMock = jest.fn().mockRejectedValue({ code: "23505" });
+      const messageValuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: messageReturningMock });
+      db.insert.mockReturnValue({ values: messageValuesMock });
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "opened-capsule",
+          nickname: "중복 닉네임",
+          content: "메시지",
+        }),
+      ).rejects.toBeInstanceOf(DuplicateNicknameException);
     });
   });
 });

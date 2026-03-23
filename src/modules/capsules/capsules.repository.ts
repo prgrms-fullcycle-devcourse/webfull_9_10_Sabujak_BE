@@ -1,11 +1,10 @@
 import { eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { db } from "../../db";
-import { capsules } from "../../db/schema";
+import { capsules, messages } from "../../db/schema";
 import {
   buildCapsuleBaseMock,
   buildCapsuleDetailMock,
-  buildMessageMock,
   buildVerifyPasswordMock,
 } from "../../mocks/capsule.mock";
 import {
@@ -14,6 +13,10 @@ import {
   setRedisStringIfAbsent,
 } from "../../redis";
 import {
+  CapsuleExpiredException,
+  CapsuleNotFoundException,
+  DuplicateNicknameException,
+  MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
 } from "../../common/exceptions/domain-exception";
@@ -30,6 +33,7 @@ import {
 const SLUG_RESERVATION_TTL_SECONDS = 300;
 const SLUG_RESERVATION_KEY_PREFIX = "capsule:slug-reservation:";
 const CAPSULE_OPEN_DURATION_DAYS = 7;
+const MESSAGE_LIMIT_PER_CAPSULE = 300;
 
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
@@ -185,7 +189,67 @@ export class CapsulesRepository {
   }
 
   async createMessage(input: CreateMessageInputDto) {
-    return buildMessageMock(input);
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        id: true,
+        expiresAt: true,
+      },
+      where: eq(capsules.slug, input.slug),
+      with: {
+        messages: {
+          columns: { id: true },
+          limit: MESSAGE_LIMIT_PER_CAPSULE,
+        },
+      },
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    if (capsule.expiresAt.getTime() <= Date.now()) {
+      throw new CapsuleExpiredException();
+    }
+
+    // 낙관적 정책을 유지하되, 이미 한도에 도달한 캡슐은 애플리케이션 레벨에서 먼저 차단합니다.
+    if (capsule.messages.length >= MESSAGE_LIMIT_PER_CAPSULE) {
+      throw new MessageLimitExceededException();
+    }
+
+    try {
+      const [createdMessage] = await db
+        .insert(messages)
+        .values({
+          capsuleId: capsule.id,
+          nickname: input.nickname,
+          content: input.content,
+        })
+        .returning();
+
+      // 최신 메시지 수신 시각이 캡슐 카드에도 반영되도록 updatedAt을 함께 갱신합니다.
+      await db
+        .update(capsules)
+        .set({ updatedAt: createdMessage.createdAt })
+        .where(eq(capsules.id, capsule.id));
+
+      return {
+        id: createdMessage.id,
+        nickname: createdMessage.nickname,
+        content: createdMessage.content,
+        createdAt: createdMessage.createdAt.toISOString(),
+      };
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "23505"
+      ) {
+        throw new DuplicateNicknameException();
+      }
+
+      throw error;
+    }
   }
 }
 
