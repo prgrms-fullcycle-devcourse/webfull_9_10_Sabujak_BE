@@ -204,6 +204,134 @@ describe("CapsulesRepository", () => {
     });
   });
 
+  describe("getCapsule", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.getCapsule({ slug: "missing-capsule" }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "expired-capsule",
+        title: "만료된 캡슐",
+        openAt: new Date("2026-03-20T00:00:00.000Z"),
+        expiresAt: new Date("2026-03-22T00:00:00.000Z"),
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-10T00:00:00.000Z"),
+      });
+
+      await expect(
+        capsulesRepository.getCapsule({ slug: "expired-capsule" }),
+      ).rejects.toBeInstanceOf(CapsuleExpiredException);
+    });
+
+    it("공개 전이면 messageCount만 포함하고 messages는 반환하지 않는다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "closed-capsule",
+        title: "비공개 캡슐",
+        openAt: new Date("2099-03-24T00:00:00.000Z"),
+        expiresAt: new Date("2099-03-31T00:00:00.000Z"),
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-10T00:00:00.000Z"),
+      });
+
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 12 }]);
+      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      const result = await capsulesRepository.getCapsule({
+        slug: "closed-capsule",
+      });
+
+      expect(result).toEqual({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "closed-capsule",
+        title: "비공개 캡슐",
+        openAt: "2099-03-24T00:00:00.000Z",
+        expiresAt: "2099-03-31T00:00:00.000Z",
+        createdAt: "2026-03-01T00:00:00.000Z",
+        updatedAt: "2026-03-10T00:00:00.000Z",
+        isOpen: false,
+        messageCount: 12,
+      });
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it("공개 후면 messageCount와 id ASC 정렬된 messages를 반환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "opened-capsule",
+        title: "공개된 캡슐",
+        openAt: new Date("2026-03-20T00:00:00.000Z"),
+        expiresAt: new Date("2099-03-31T00:00:00.000Z"),
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-23T10:00:00.000Z"),
+      });
+
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 2 }]);
+      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const messagesOrderByMock = jest.fn().mockResolvedValue([
+        {
+          id: 1,
+          nickname: "첫 번째",
+          content: "첫 번째 메시지",
+          createdAt: new Date("2026-03-21T10:00:00.000Z"),
+        },
+        {
+          id: 2,
+          nickname: "두 번째",
+          content: "두 번째 메시지",
+          createdAt: new Date("2026-03-22T10:00:00.000Z"),
+        },
+      ]);
+      const messagesWhereMock = jest
+        .fn()
+        .mockReturnValue({ orderBy: messagesOrderByMock });
+      const messagesFromMock = jest
+        .fn()
+        .mockReturnValue({ where: messagesWhereMock });
+      db.select
+        .mockReturnValueOnce({ from: countFromMock })
+        .mockReturnValueOnce({ from: messagesFromMock });
+
+      const result = await capsulesRepository.getCapsule({
+        slug: "opened-capsule",
+      });
+
+      expect(result).toEqual({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "opened-capsule",
+        title: "공개된 캡슐",
+        openAt: "2026-03-20T00:00:00.000Z",
+        expiresAt: "2099-03-31T00:00:00.000Z",
+        createdAt: "2026-03-01T00:00:00.000Z",
+        updatedAt: "2026-03-23T10:00:00.000Z",
+        isOpen: true,
+        messageCount: 2,
+        messages: [
+          {
+            id: 1,
+            nickname: "첫 번째",
+            content: "첫 번째 메시지",
+            createdAt: "2026-03-21T10:00:00.000Z",
+          },
+          {
+            id: 2,
+            nickname: "두 번째",
+            content: "두 번째 메시지",
+            createdAt: "2026-03-22T10:00:00.000Z",
+          },
+        ],
+      });
+      expect(messagesOrderByMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("createMessage", () => {
     it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue(null);
