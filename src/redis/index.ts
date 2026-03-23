@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { createClient } from "redis";
+import { createClient, RedisClientType } from "redis";
 
 const localRedisUrl = process.env.REDIS_URL?.trim();
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
@@ -14,6 +14,8 @@ export const isRedisConfigured =
 export type AppRedisClient = {
   ping: () => Promise<unknown>;
 };
+
+type LocalRedisClient = RedisClientType;
 
 let redisClient: AppRedisClient | null = null;
 let redisConnectionPromise: Promise<AppRedisClient> | null = null;
@@ -74,4 +76,52 @@ export const requireRedisClient = async () => {
   }
 
   return client;
+};
+
+export const getRedisStringValue = async (key: string) => {
+  const client = await requireRedisClient();
+
+  // 로컬 Redis와 Upstash Redis를 같은 인터페이스로 읽기 위해 분기합니다.
+  if (isLocalRedisConfigured && "get" in client) {
+    const value = await (client as LocalRedisClient).get(key);
+    return typeof value === "string" ? value : null;
+  }
+
+  const value = await (client as Redis).get<string>(key);
+  return typeof value === "string" ? value : null;
+};
+
+export const setRedisStringIfAbsent = async (
+  key: string,
+  value: string,
+  ttlSeconds: number,
+) => {
+  const client = await requireRedisClient();
+
+  // 로컬 Redis에서는 node-redis 옵션 이름을, Upstash에서는 REST 클라이언트 옵션 이름을 사용합니다.
+  if (isLocalRedisConfigured && "set" in client) {
+    const result = await (client as LocalRedisClient).set(key, value, {
+      NX: true,
+      EX: ttlSeconds,
+    });
+    return result === "OK";
+  }
+
+  const result = await (client as Redis).set(key, value, {
+    nx: true,
+    ex: ttlSeconds,
+  });
+
+  return result === "OK";
+};
+
+export const deleteRedisKey = async (key: string) => {
+  const client = await requireRedisClient();
+
+  if (isLocalRedisConfigured && "del" in client) {
+    await (client as LocalRedisClient).del(key);
+    return;
+  }
+
+  await (client as Redis).del(key);
 };
