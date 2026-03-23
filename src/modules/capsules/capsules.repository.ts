@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { randomBytes, randomUUID, scryptSync } from "node:crypto";
+import { randomBytes, randomUUID, scrypt } from "node:crypto";
 import { db } from "../../db";
 import { capsules } from "../../db/schema";
 import {
@@ -59,9 +59,21 @@ const generateUlid = () => {
   return `${timePart}${randomPart}`;
 };
 
-const hashPassword = (password: string) => {
+const deriveScryptKey = (password: string, salt: string) =>
+  new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, 64, (error, derivedKey) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(derivedKey);
+    });
+  });
+
+const hashPassword = async (password: string) => {
   const salt = randomBytes(16).toString("hex");
-  const derivedKey = scryptSync(password, salt, 64).toString("hex");
+  const derivedKey = (await deriveScryptKey(password, salt)).toString("hex");
   return `${salt}:${derivedKey}`;
 };
 
@@ -124,7 +136,7 @@ export class CapsulesRepository {
     const openAt = new Date(input.openAt);
     const expiresAt = calculateExpiresAt(openAt);
     const capsuleId = generateUlid();
-    const passwordHash = hashPassword(input.password);
+    const passwordHash = await hashPassword(input.password);
 
     try {
       // 예약 검증이 끝난 뒤에만 실제 캡슐을 저장하고, 응답용 메타데이터를 그대로 돌려줍니다.
