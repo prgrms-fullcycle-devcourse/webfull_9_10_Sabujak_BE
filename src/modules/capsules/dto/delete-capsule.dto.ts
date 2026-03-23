@@ -1,9 +1,8 @@
 import { z } from "../../../openapi/zod-extend";
-import { slugSchema } from "./shared.dto";
+import { passwordSchema } from "./shared.dto";
 
-export const deleteCapsuleResponseSchema = z
+export const deleteCapsuleBodySchema = z
   .object({
-    deleted: z.literal(true).openapi({ example: true }),
-    slug: slugSchema,
+    password: passwordSchema,
   })
-  .openapi("DeleteCapsuleResponse");
+  .openapi("DeleteCapsuleRequest");

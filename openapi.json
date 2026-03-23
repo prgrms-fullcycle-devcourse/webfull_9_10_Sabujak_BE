@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Sabujak Mock API",
+    "title": "Sabujak API",
     "version": "1.0.0",
-    "description": "프론트엔드 Orval 연동과 mock API 실험을 위한 OpenAPI 문서입니다."
+    "description": "사부작 백엔드 API 문서입니다."
   },
   "servers": [
     {
@@ -18,6 +18,8 @@
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           },
@@ -31,7 +33,82 @@
             "example": "2026-03-18T02:10:21.000Z"
           }
         },
-        "required": ["slug", "reservationToken", "reservedUntil"]
+        "required": [
+          "slug",
+          "reservationToken",
+          "reservedUntil"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_INPUT",
+                  "FORBIDDEN_PASSWORD",
+                  "CAPSULE_NOT_FOUND",
+                  "SLUG_ALREADY_IN_USE",
+                  "SLUG_RESERVATION_MISMATCH",
+                  "DUPLICATE_NICKNAME",
+                  "MESSAGE_LIMIT_EXCEEDED",
+                  "CAPSULE_EXPIRED",
+                  "TOO_MANY_REQUESTS",
+                  "INTERNAL_SERVER_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "description": "입력값 검증 실패 시 필드별 상세 오류 목록",
+                "example": [
+                  {
+                    "field": "title",
+                    "message": "최소 1자 이상이어야 합니다."
+                  },
+                  {
+                    "field": "password",
+                    "message": "4자리 숫자여야 합니다."
+                  }
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "유효성 검사에 실패한 필드 경로",
+            "example": "title"
+          },
+          "message": {
+            "type": "string",
+            "description": "해당 필드의 검증 실패 메시지",
+            "example": "최소 1자 이상이어야 합니다."
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ]
       },
       "CreateSlugReservationRequest": {
         "type": "object",
@@ -39,11 +116,15 @@
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           }
         },
-        "required": ["slug"]
+        "required": [
+          "slug"
+        ]
       },
       "CreateCapsuleResponse": {
         "type": "object",
@@ -55,12 +136,15 @@
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           },
           "title": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
           },
           "openAt": {
@@ -100,17 +184,20 @@
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           },
           "title": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
           },
           "password": {
             "type": "string",
-            "minLength": 1,
+            "pattern": "^\\d{4}$",
             "example": "1234"
           },
           "openAt": {
@@ -123,7 +210,13 @@
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
           }
         },
-        "required": ["slug", "title", "password", "openAt", "reservationToken"]
+        "required": [
+          "slug",
+          "title",
+          "password",
+          "openAt",
+          "reservationToken"
+        ]
       },
       "CapsuleDetailResponse": {
         "oneOf": [
@@ -137,12 +230,15 @@
               "slug": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
                 "description": "사용자 노출용 slug 식별자",
                 "example": "our-graduation-2025"
               },
               "title": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "example": "졸업 축하 타임캡슐"
               },
               "openAt": {
@@ -167,7 +263,9 @@
               },
               "isOpen": {
                 "type": "boolean",
-                "enum": [false],
+                "enum": [
+                  false
+                ],
                 "example": false
               },
               "messageCount": {
@@ -197,12 +295,15 @@
               "slug": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
                 "description": "사용자 노출용 slug 식별자",
                 "example": "our-graduation-2025"
               },
               "title": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "example": "졸업 축하 타임캡슐"
               },
               "openAt": {
@@ -227,7 +328,9 @@
               },
               "isOpen": {
                 "type": "boolean",
-                "enum": [true],
+                "enum": [
+                  true
+                ],
                 "example": true
               },
               "messageCount": {
@@ -278,7 +381,12 @@
             "example": "2025-12-24T15:30:00.000Z"
           }
         },
-        "required": ["id", "nickname", "content", "createdAt"]
+        "required": [
+          "id",
+          "nickname",
+          "content",
+          "createdAt"
+        ]
       },
       "VerifyCapsulePasswordResponse": {
         "type": "object",
@@ -288,18 +396,22 @@
             "example": true
           }
         },
-        "required": ["verified"]
+        "required": [
+          "verified"
+        ]
       },
       "VerifyCapsulePasswordRequest": {
         "type": "object",
         "properties": {
           "password": {
             "type": "string",
-            "minLength": 1,
+            "pattern": "^\\d{4}$",
             "example": "1234"
           }
         },
-        "required": ["password"]
+        "required": [
+          "password"
+        ]
       },
       "UpdateCapsuleResponse": {
         "type": "object",
@@ -311,12 +423,15 @@
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
           },
           "title": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
           },
           "openAt": {
@@ -355,12 +470,13 @@
         "properties": {
           "password": {
             "type": "string",
-            "minLength": 1,
+            "pattern": "^\\d{4}$",
             "example": "1234"
           },
           "title": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
           },
           "openAt": {
@@ -369,24 +485,24 @@
             "example": "2025-12-25T12:00:00.000Z"
           }
         },
-        "required": ["password", "title", "openAt"]
+        "required": [
+          "password",
+          "title",
+          "openAt"
+        ]
       },
-      "DeleteCapsuleResponse": {
+      "DeleteCapsuleRequest": {
         "type": "object",
         "properties": {
-          "deleted": {
-            "type": "boolean",
-            "enum": [true],
-            "example": true
-          },
-          "slug": {
+          "password": {
             "type": "string",
-            "minLength": 1,
-            "description": "사용자 노출용 slug 식별자",
-            "example": "our-graduation-2025"
+            "pattern": "^\\d{4}$",
+            "example": "1234"
           }
         },
-        "required": ["deleted", "slug"]
+        "required": [
+          "password"
+        ]
       },
       "CreateMessageResponse": {
         "type": "object",
@@ -398,11 +514,13 @@
           "nickname": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 20,
             "example": "익명의 친구"
           },
           "content": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 1000,
             "example": "앞으로도 좋은 일만 가득하길 바랄게!"
           },
           "createdAt": {
@@ -411,7 +529,12 @@
             "example": "2025-03-18T02:05:21.000Z"
           }
         },
-        "required": ["id", "nickname", "content", "createdAt"]
+        "required": [
+          "id",
+          "nickname",
+          "content",
+          "createdAt"
+        ]
       },
       "CreateMessageRequest": {
         "type": "object",
@@ -419,15 +542,20 @@
           "nickname": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 20,
             "example": "익명의 친구"
           },
           "content": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 1000,
             "example": "앞으로도 좋은 일만 가득하길 바랄게!"
           }
         },
-        "required": ["nickname", "content"]
+        "required": [
+          "nickname",
+          "content"
+        ]
       }
     },
     "parameters": {}
@@ -435,9 +563,11 @@
   "paths": {
     "/capsules/slug-reservations": {
       "post": {
-        "tags": ["Capsule"],
+        "tags": [
+          "Capsule"
+        ],
         "summary": "슬러그 예약 생성",
-        "description": "현재 mock 서버에서는 어떤 slug가 와도 예약 성공 응답을 반환합니다.",
+        "description": "중복 확인 후 슬러그 예약 토큰을 발급합니다.",
         "requestBody": {
           "required": true,
           "content": {
@@ -458,15 +588,77 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "INVALID_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SLUG_ALREADY_IN_USE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "slug_already_in_use": {
+                    "value": {
+                      "error": {
+                        "code": "SLUG_ALREADY_IN_USE",
+                        "message": "이미 사용 중인 slug 입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/capsules": {
       "post": {
-        "tags": ["Capsule"],
+        "tags": [
+          "Capsule"
+        ],
         "summary": "캡슐 생성",
-        "description": "현재 mock 서버에서는 slug, title, openAt만 응답에 반영하고 password와 reservationToken은 검증하지 않습니다.",
+        "description": "예약 토큰을 포함해 신규 타임캡슐을 생성합니다.",
         "requestBody": {
           "required": true,
           "content": {
@@ -487,20 +679,84 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "INVALID_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SLUG_RESERVATION_MISMATCH",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "slug_reservation_mismatch": {
+                    "value": {
+                      "error": {
+                        "code": "SLUG_RESERVATION_MISMATCH",
+                        "message": "slug 예약 토큰 검증에 실패했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/capsules/{slug}": {
       "get": {
-        "tags": ["Capsule"],
+        "tags": [
+          "Capsule"
+        ],
         "summary": "캡슐 조회",
-        "description": "현재 mock 서버에서는 공개 여부를 시간 대신 slug로 분기합니다. `opened-capsule` 예시를 사용하면 공개 후 응답을 확인할 수 있습니다.",
+        "description": "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
         "parameters": [
           {
             "schema": {
               "type": "string",
               "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
               "description": "사용자 노출용 slug 식별자",
               "example": "our-graduation-2025"
             },
@@ -558,18 +814,82 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "CAPSULE_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_expired": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_EXPIRED",
+                        "message": "만료된 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
       "patch": {
-        "tags": ["Capsule"],
+        "tags": [
+          "Capsule"
+        ],
         "summary": "캡슐 수정",
-        "description": "현재 mock 서버에서는 title, openAt만 응답에 반영하고 password는 검증하지 않습니다.",
+        "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다.",
         "parameters": [
           {
             "schema": {
               "type": "string",
               "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
               "description": "사용자 노출용 slug 식별자",
               "example": "our-graduation-2025"
             },
@@ -599,18 +919,122 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "INVALID_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_PASSWORD",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden_password": {
+                    "value": {
+                      "error": {
+                        "code": "FORBIDDEN_PASSWORD",
+                        "message": "비밀번호가 일치하지 않습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "CAPSULE_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_expired": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_EXPIRED",
+                        "message": "만료된 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
       "delete": {
-        "tags": ["Capsule"],
+        "tags": [
+          "Capsule"
+        ],
         "summary": "캡슐 삭제",
-        "description": "현재 mock 서버에서는 어떤 slug가 와도 deleted: true 응답을 반환합니다.",
+        "description": "관리자 비밀번호 검증 후 캡슐을 삭제합니다.",
         "parameters": [
           {
             "schema": {
               "type": "string",
               "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
               "description": "사용자 노출용 slug 식별자",
               "example": "our-graduation-2025"
             },
@@ -620,13 +1044,96 @@
             "in": "path"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCapsuleRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "캡슐 삭제 성공",
+          "204": {
+            "description": "캡슐 삭제 성공"
+          },
+          "400": {
+            "description": "INVALID_INPUT",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeleteCapsuleResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_PASSWORD",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden_password": {
+                    "value": {
+                      "error": {
+                        "code": "FORBIDDEN_PASSWORD",
+                        "message": "비밀번호가 일치하지 않습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -636,14 +1143,18 @@
     },
     "/capsules/{slug}/verify": {
       "post": {
-        "tags": ["Capsule"],
+        "tags": [
+          "Capsule"
+        ],
         "summary": "관리자 비밀번호 확인",
-        "description": "현재 mock 서버에서는 어떤 password가 와도 항상 verified: true를 반환합니다.",
+        "description": "캡슐 관리자 비밀번호를 검증합니다.",
         "parameters": [
           {
             "schema": {
               "type": "string",
               "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
               "description": "사용자 노출용 slug 식별자",
               "example": "our-graduation-2025"
             },
@@ -673,20 +1184,124 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "INVALID_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_PASSWORD",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden_password": {
+                    "value": {
+                      "error": {
+                        "code": "FORBIDDEN_PASSWORD",
+                        "message": "비밀번호가 일치하지 않습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "too_many_requests": {
+                    "value": {
+                      "error": {
+                        "code": "TOO_MANY_REQUESTS",
+                        "message": "요청 횟수 제한을 초과했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/capsules/{slug}/messages": {
       "post": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "메시지 작성",
-        "description": "현재 mock 서버에서는 nickname과 content를 그대로 응답에 반영하고, 없으면 기본값을 사용합니다.",
+        "description": "특정 캡슐에 익명 메시지를 작성합니다.",
         "parameters": [
           {
             "schema": {
               "type": "string",
               "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
               "description": "사용자 노출용 slug 식별자",
               "example": "our-graduation-2025"
             },
@@ -713,6 +1328,106 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DUPLICATE_NICKNAME",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "duplicate_nickname": {
+                    "value": {
+                      "error": {
+                        "code": "DUPLICATE_NICKNAME",
+                        "message": "중복된 닉네임입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "CAPSULE_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_expired": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_EXPIRED",
+                        "message": "만료된 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
                 }
               }
             }
