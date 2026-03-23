@@ -1,34 +1,42 @@
 import { capsulesRepository, CapsulesRepository } from "./capsules.repository";
-import { CapsuleMutationDto, MessageInputDto } from "./dto";
+import {
+  CreateCapsuleInputDto,
+  CreateMessageInputDto,
+  CreateSlugReservationInputDto,
+  DeleteCapsuleInputDto,
+  GetCapsuleInputDto,
+  UpdateCapsuleInputDto,
+  VerifyCapsulePasswordInputDto,
+} from "./dto";
 
 export class CapsulesService {
   constructor(private readonly repository: CapsulesRepository) {}
 
-  createSlugReservation(slug?: unknown) {
-    return this.repository.createSlugReservation(slug);
+  async createSlugReservation(input: CreateSlugReservationInputDto) {
+    return this.repository.createSlugReservation(input);
   }
 
-  createCapsule(input: CapsuleMutationDto) {
+  async createCapsule(input: CreateCapsuleInputDto) {
     return this.repository.createCapsule(input);
   }
 
-  getCapsule(slug: string) {
-    return this.repository.getCapsule(slug);
+  async getCapsule(input: GetCapsuleInputDto) {
+    return this.repository.getCapsule(input);
   }
 
-  verifyCapsulePassword() {
-    return this.repository.verifyCapsulePassword();
+  async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
+    return this.repository.verifyCapsulePassword(input);
   }
 
-  updateCapsule(input: CapsuleMutationDto) {
+  async updateCapsule(input: UpdateCapsuleInputDto) {
     return this.repository.updateCapsule(input);
   }
 
-  deleteCapsule(slug?: unknown) {
-    return this.repository.deleteCapsule(slug);
+  async deleteCapsule(input: DeleteCapsuleInputDto) {
+    return this.repository.deleteCapsule(input);
   }
 
-  createMessage(input: MessageInputDto) {
+  async createMessage(input: CreateMessageInputDto) {
     return this.repository.createMessage(input);
   }
 }

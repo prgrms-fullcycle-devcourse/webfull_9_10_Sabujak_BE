@@ -1,39 +1,48 @@
 import {
   buildCapsuleBaseMock,
   buildCapsuleDetailMock,
-  buildDeleteCapsuleMock,
   buildMessageMock,
   buildSlugReservationMock,
   buildVerifyPasswordMock,
 } from "../../mocks/capsule.mock";
-import { CapsuleMutationDto, MessageInputDto } from "./dto";
+import {
+  CreateCapsuleInputDto,
+  CreateMessageInputDto,
+  CreateSlugReservationInputDto,
+  DeleteCapsuleInputDto,
+  GetCapsuleInputDto,
+  UpdateCapsuleInputDto,
+  VerifyCapsulePasswordInputDto,
+} from "./dto";
 
 export class CapsulesRepository {
-  createSlugReservation(slug?: unknown) {
-    return buildSlugReservationMock(slug);
+  async createSlugReservation(input: CreateSlugReservationInputDto) {
+    return buildSlugReservationMock(input.slug);
   }
 
-  createCapsule(input: CapsuleMutationDto) {
+  async createCapsule(input: CreateCapsuleInputDto) {
     return buildCapsuleBaseMock(input);
   }
 
-  getCapsule(slug: string) {
-    return buildCapsuleDetailMock(slug);
+  async getCapsule(input: GetCapsuleInputDto) {
+    return buildCapsuleDetailMock(input.slug);
   }
 
-  verifyCapsulePassword() {
+  async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
+    void input;
     return buildVerifyPasswordMock();
   }
 
-  updateCapsule(input: CapsuleMutationDto) {
+  async updateCapsule(input: UpdateCapsuleInputDto) {
     return buildCapsuleBaseMock(input);
   }
 
-  deleteCapsule(slug?: unknown) {
-    return buildDeleteCapsuleMock(slug);
+  async deleteCapsule(input: DeleteCapsuleInputDto) {
+    void input;
+    return;
   }
 
-  createMessage(input: MessageInputDto) {
+  async createMessage(input: CreateMessageInputDto) {
     return buildMessageMock(input);
   }
 }
