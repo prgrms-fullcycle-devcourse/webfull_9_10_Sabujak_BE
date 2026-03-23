@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
@@ -195,12 +195,6 @@ export class CapsulesRepository {
         expiresAt: true,
       },
       where: eq(capsules.slug, input.slug),
-      with: {
-        messages: {
-          columns: { id: true },
-          limit: MESSAGE_LIMIT_PER_CAPSULE,
-        },
-      },
     });
 
     if (!capsule) {
@@ -211,33 +205,40 @@ export class CapsulesRepository {
       throw new CapsuleExpiredException();
     }
 
+    const [{ messageCount }] = await db
+      .select({ messageCount: count() })
+      .from(messages)
+      .where(eq(messages.capsuleId, capsule.id));
+
     // 낙관적 정책을 유지하되, 이미 한도에 도달한 캡슐은 애플리케이션 레벨에서 먼저 차단합니다.
-    if (capsule.messages.length >= MESSAGE_LIMIT_PER_CAPSULE) {
+    if (messageCount >= MESSAGE_LIMIT_PER_CAPSULE) {
       throw new MessageLimitExceededException();
     }
 
     try {
-      const [createdMessage] = await db
-        .insert(messages)
-        .values({
-          capsuleId: capsule.id,
-          nickname: input.nickname,
-          content: input.content,
-        })
-        .returning();
+      return await db.transaction(async (tx) => {
+        const [createdMessage] = await tx
+          .insert(messages)
+          .values({
+            capsuleId: capsule.id,
+            nickname: input.nickname,
+            content: input.content,
+          })
+          .returning();
 
-      // 최신 메시지 수신 시각이 캡슐 카드에도 반영되도록 updatedAt을 함께 갱신합니다.
-      await db
-        .update(capsules)
-        .set({ updatedAt: createdMessage.createdAt })
-        .where(eq(capsules.id, capsule.id));
+        // 메시지 저장과 최근 활동 시각 갱신을 하나의 트랜잭션으로 묶어 원자성을 보장합니다.
+        await tx
+          .update(capsules)
+          .set({ updatedAt: createdMessage.createdAt })
+          .where(eq(capsules.id, capsule.id));
 
-      return {
-        id: createdMessage.id,
-        nickname: createdMessage.nickname,
-        content: createdMessage.content,
-        createdAt: createdMessage.createdAt.toISOString(),
-      };
+        return {
+          id: createdMessage.id,
+          nickname: createdMessage.nickname,
+          content: createdMessage.content,
+          createdAt: createdMessage.createdAt.toISOString(),
+        };
+      });
     } catch (error) {
       if (
         typeof error === "object" &&

@@ -15,8 +15,10 @@ jest.mock("../../db", () => ({
         findFirst: jest.fn(),
       },
     },
+    select: jest.fn(),
     insert: jest.fn(),
     update: jest.fn(),
+    transaction: jest.fn(),
   },
 }));
 
@@ -33,8 +35,10 @@ const { db } = jest.requireMock("../../db") as {
         findFirst: jest.Mock;
       };
     };
+    select: jest.Mock;
     insert: jest.Mock;
     update: jest.Mock;
+    transaction: jest.Mock;
   };
 };
 
@@ -217,7 +221,6 @@ describe("CapsulesRepository", () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
         expiresAt: new Date("2026-03-22T00:00:00.000Z"),
-        messages: [],
       });
 
       await expect(
@@ -233,8 +236,10 @@ describe("CapsulesRepository", () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
         expiresAt: new Date("2026-03-24T00:00:00.000Z"),
-        messages: Array.from({ length: 300 }, (_, index) => ({ id: index + 1 })),
       });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 300 }]);
+      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
 
       await expect(
         capsulesRepository.createMessage({
@@ -249,8 +254,10 @@ describe("CapsulesRepository", () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
         expiresAt: new Date("2026-03-24T00:00:00.000Z"),
-        messages: [{ id: 1 }],
       });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 1 }]);
+      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
 
       const messageReturningMock = jest.fn().mockResolvedValue([
         {
@@ -263,11 +270,17 @@ describe("CapsulesRepository", () => {
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
-      db.insert.mockReturnValue({ values: messageValuesMock });
+      const txInsertMock = jest.fn().mockReturnValue({ values: messageValuesMock });
 
       const updateWhereMock = jest.fn().mockResolvedValue(undefined);
       const updateSetMock = jest.fn().mockReturnValue({ where: updateWhereMock });
-      db.update.mockReturnValue({ set: updateSetMock });
+      const txUpdateMock = jest.fn().mockReturnValue({ set: updateSetMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          insert: txInsertMock,
+          update: txUpdateMock,
+        }),
+      );
 
       const result = await capsulesRepository.createMessage({
         slug: "opened-capsule",
@@ -280,7 +293,7 @@ describe("CapsulesRepository", () => {
         nickname: "익명의 멘토",
         content: "졸업을 진심으로 축하합니다!",
       });
-      expect(db.update).toHaveBeenCalled();
+      expect(db.transaction).toHaveBeenCalled();
       expect(updateSetMock).toHaveBeenCalledWith({
         updatedAt: new Date("2026-03-23T10:00:00.000Z"),
       });
@@ -296,14 +309,22 @@ describe("CapsulesRepository", () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
         expiresAt: new Date("2026-03-24T00:00:00.000Z"),
-        messages: [],
       });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
+      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
 
       const messageReturningMock = jest.fn().mockRejectedValue({ code: "23505" });
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
-      db.insert.mockReturnValue({ values: messageValuesMock });
+      const txInsertMock = jest.fn().mockReturnValue({ values: messageValuesMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          insert: txInsertMock,
+          update: jest.fn(),
+        }),
+      );
 
       await expect(
         capsulesRepository.createMessage({
