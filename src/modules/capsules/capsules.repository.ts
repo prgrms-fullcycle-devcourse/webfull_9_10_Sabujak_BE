@@ -205,12 +205,6 @@ export class CapsulesRepository {
       throw new CapsuleExpiredException();
     }
 
-    // 공개 전/후 화면 모두 현재까지 쌓인 메시지 수는 동일하게 내려줍니다.
-    const [{ messageCount }] = await db
-      .select({ messageCount: count() })
-      .from(messages)
-      .where(eq(messages.capsuleId, capsule.id));
-
     const baseResponse = {
       id: capsule.id,
       slug: capsule.slug,
@@ -219,13 +213,19 @@ export class CapsulesRepository {
       expiresAt: capsule.expiresAt.toISOString(),
       createdAt: capsule.createdAt.toISOString(),
       updatedAt: capsule.updatedAt.toISOString(),
-      messageCount,
     };
 
     if (capsule.openAt.getTime() > now) {
+      // 공개 전에는 메시지 목록을 노출하지 않으므로 건수만 별도로 계산합니다.
+      const [{ messageCount }] = await db
+        .select({ messageCount: count() })
+        .from(messages)
+        .where(eq(messages.capsuleId, capsule.id));
+
       return {
         ...baseResponse,
         isOpen: false as const,
+        messageCount,
       };
     }
 
@@ -244,6 +244,7 @@ export class CapsulesRepository {
     return {
       ...baseResponse,
       isOpen: true as const,
+      messageCount: capsuleMessages.length,
       messages: capsuleMessages.map((message) => ({
         id: message.id,
         nickname: message.nickname,

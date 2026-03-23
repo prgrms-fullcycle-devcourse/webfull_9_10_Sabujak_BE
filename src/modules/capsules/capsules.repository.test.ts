@@ -273,8 +273,6 @@ describe("CapsulesRepository", () => {
         updatedAt: new Date("2026-03-23T10:00:00.000Z"),
       });
 
-      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 2 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
       const messagesOrderByMock = jest.fn().mockResolvedValue([
         {
           id: 1,
@@ -295,9 +293,7 @@ describe("CapsulesRepository", () => {
       const messagesFromMock = jest
         .fn()
         .mockReturnValue({ where: messagesWhereMock });
-      db.select
-        .mockReturnValueOnce({ from: countFromMock })
-        .mockReturnValueOnce({ from: messagesFromMock });
+      db.select.mockReturnValue({ from: messagesFromMock });
 
       const result = await capsulesRepository.getCapsule({
         slug: "opened-capsule",
@@ -328,6 +324,7 @@ describe("CapsulesRepository", () => {
           },
         ],
       });
+      expect(db.select).toHaveBeenCalledTimes(1);
       expect(messagesOrderByMock).toHaveBeenCalledTimes(1);
     });
   });
