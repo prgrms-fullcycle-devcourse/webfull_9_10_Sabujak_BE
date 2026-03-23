@@ -276,7 +276,7 @@ registry.registerPath({
   method: "delete",
   path: "/capsules/{slug}",
   tags: ["Capsule"],
-  summary: "캡슐 삭제",
+  summary: "캡슐 삭제❤️",
   description: "관리자 비밀번호 검증 후 캡슐을 삭제합니다.",
   request: {
     params: capsuleSlugParamsSchema,
