@@ -530,7 +530,7 @@
         "tags": [
           "Capsule"
         ],
-        "summary": "슬러그 예약 생성",
+        "summary": "슬러그 예약 생성❤️",
         "description": "중복 확인 후 슬러그 예약 토큰을 발급합니다.",
         "requestBody": {
           "required": true,
@@ -621,7 +621,7 @@
         "tags": [
           "Capsule"
         ],
-        "summary": "캡슐 생성",
+        "summary": "캡슐 생성❤️",
         "description": "예약 토큰을 검증한 뒤 신규 타임캡슐을 생성하고, openAt 기준으로 expiresAt을 계산합니다.",
         "requestBody": {
           "required": true,
