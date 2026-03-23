@@ -64,7 +64,7 @@
 | Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slug}/verify`     | 수정/삭제 진입용 비밀번호 검증  |
 | Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slug}`            | 비밀번호 검증 후 수정           |
 | Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slug}`            | 비밀번호 검증 후 Hard Delete    |
-| Message | 메시지 작성          | `POST`   | `/capsules/{slug}/messages`   | 익명 메시지 작성                |
+| Message | 메시지 작성❤️       | `POST`   | `/capsules/{slug}/messages`   | 익명 메시지 작성                |
 
 ## 3. 엔드포인트 상세
 
@@ -294,7 +294,7 @@ Response `204 No Content`
 - Hard Delete로 처리합니다.
 - 캡슐 삭제 시 연관 메시지는 함께 삭제됩니다.
 
-### 3.8 메시지 작성
+### 3.8 메시지 작성❤️
 
 `POST /capsules/{slug}/messages`
 

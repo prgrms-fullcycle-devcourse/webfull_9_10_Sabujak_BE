@@ -1265,8 +1265,8 @@
         "tags": [
           "Message"
         ],
-        "summary": "메시지 작성",
-        "description": "특정 캡슐에 익명 메시지를 작성합니다.",
+        "summary": "메시지 작성❤️",
+        "description": "특정 캡슐에 익명 메시지를 작성하고, 성공 시 캡슐의 최신 활동 시각을 함께 갱신합니다.",
         "parameters": [
           {
             "schema": {
@@ -1345,7 +1345,7 @@
             }
           },
           "409": {
-            "description": "DUPLICATE_NICKNAME",
+            "description": "DUPLICATE_NICKNAME | MESSAGE_LIMIT_EXCEEDED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1357,6 +1357,14 @@
                       "error": {
                         "code": "DUPLICATE_NICKNAME",
                         "message": "중복된 닉네임입니다."
+                      }
+                    }
+                  },
+                  "message_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "MESSAGE_LIMIT_EXCEEDED",
+                        "message": "메시지 작성 가능 개수를 초과했습니다."
                       }
                     }
                   }
