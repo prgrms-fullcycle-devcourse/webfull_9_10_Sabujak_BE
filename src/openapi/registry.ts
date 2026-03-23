@@ -54,6 +54,28 @@ const buildErrorResponse = (code: keyof typeof errorMessages) => ({
   },
 });
 
+const buildErrorResponses = (...codes: Array<keyof typeof errorMessages>) => ({
+  description: codes.join(" | "),
+  content: {
+    "application/json": {
+      schema: errorResponseSchema,
+      examples: Object.fromEntries(
+        codes.map((code) => [
+          code.toLowerCase(),
+          {
+            value: {
+              error: {
+                code,
+                message: errorMessages[code],
+              },
+            },
+          },
+        ]),
+      ),
+    },
+  },
+});
+
 registry.registerPath({
   method: "post",
   path: "/capsules/slug-reservations",
@@ -90,7 +112,8 @@ registry.registerPath({
   path: "/capsules",
   tags: ["Capsule"],
   summary: "캡슐 생성",
-  description: "예약 토큰을 포함해 신규 타임캡슐을 생성합니다.",
+  description:
+    "예약 토큰을 검증한 뒤 신규 타임캡슐을 생성하고, openAt 기준으로 expiresAt을 계산합니다.",
   request: {
     body: {
       required: true,
@@ -111,7 +134,10 @@ registry.registerPath({
       },
     },
     400: buildErrorResponse("INVALID_INPUT"),
-    409: buildErrorResponse("SLUG_RESERVATION_MISMATCH"),
+    409: buildErrorResponses(
+      "SLUG_RESERVATION_MISMATCH",
+      "SLUG_ALREADY_IN_USE",
+    ),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
 });

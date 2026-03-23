@@ -151,6 +151,7 @@ Response `201 Created`
 - `reservationToken`은 필수(Required)입니다. 누락 시 `400 INVALID_INPUT`을 반환합니다.
 - `reservationToken`이 Redis 예약 정보와 일치해야 합니다.
 - 예약 토큰이 만료되었거나, 정보 불일치로 예약 검증에 실패하면 `409 SLUG_RESERVATION_MISMATCH`를 반환합니다.
+- 캡슐 생성이 성공하면 해당 `slug` 의 Redis 예약 정보는 즉시 정리합니다.
 - 최종 저장 시 `slug` unique constraint 충돌이 발생하면 `409 SLUG_ALREADY_IN_USE`를 반환합니다.
 
 ### 3.4 캡슐 조회
