@@ -1,7 +1,10 @@
 ## 로컬 DB 재초기화 방법
 
-기존 `postgres_data` 볼륨이 있는 경우 `docs/schema.sql`은 자동으로 다시 실행되지 않습니다.
-최신 스키마를 반영하려면 아래 순서로 로컬 DB를 재초기화해주세요.
+현재 Docker 로컬 DB의 최초 초기화는 `docs/schema.sql`이 아니라 Drizzle 산출물인 `drizzle/0000_faulty_mariko_yashida.sql`을 사용합니다.
+또한 API 서버가 시작될 때 기존 로컬 DB의 핵심 드리프트(`capsules.created_at/updated_at`, `messages.id`, `messages.created_at`)를 자동으로 보정합니다.
+
+기존 `postgres_data` 볼륨이 있는 경우 최초 초기화 SQL은 다시 실행되지 않습니다.
+테이블을 완전히 새로 만들고 싶다면 아래 순서로 로컬 DB를 재초기화해주세요.
 
 1. 실행 중인 컨테이너를 내립니다.
    `docker compose down -v`

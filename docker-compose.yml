@@ -12,6 +12,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-false}
       - REDIS_URL=redis://redis:6379
+      - DATABASE_SCHEMA_AUTO_REPAIR=true
     volumes:
       - ./src:/app/src
     networks:
@@ -30,7 +31,7 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docs/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./drizzle/0000_faulty_mariko_yashida.sql:/docker-entrypoint-initdb.d/0000_init.sql:ro
     networks:
       - sabujak_net
     healthcheck:
