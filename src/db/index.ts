@@ -1,22 +1,10 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
 
 import * as schema from "./schema";
+import { createPool } from "./pool";
 
-const isProduction = process.env.NODE_ENV === "production";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ...(!process.env.DATABASE_URL && {
-    host: "db",
-    port: 5432,
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB,
-  }),
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
-});
+const pool = createPool();
 
 export default pool;
 
