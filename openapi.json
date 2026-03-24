@@ -566,7 +566,7 @@
         "tags": [
           "Capsule"
         ],
-        "summary": "슬러그 예약 생성",
+        "summary": "슬러그 예약 생성❤️",
         "description": "중복 확인 후 슬러그 예약 토큰을 발급합니다.",
         "requestBody": {
           "required": true,
@@ -657,8 +657,8 @@
         "tags": [
           "Capsule"
         ],
-        "summary": "캡슐 생성",
-        "description": "예약 토큰을 포함해 신규 타임캡슐을 생성합니다.",
+        "summary": "캡슐 생성❤️",
+        "description": "예약 토큰을 검증한 뒤 신규 타임캡슐을 생성하고, openAt 기준으로 expiresAt을 계산합니다.",
         "requestBody": {
           "required": true,
           "content": {
@@ -701,7 +701,7 @@
             }
           },
           "409": {
-            "description": "SLUG_RESERVATION_MISMATCH",
+            "description": "SLUG_RESERVATION_MISMATCH | SLUG_ALREADY_IN_USE",
             "content": {
               "application/json": {
                 "schema": {
@@ -713,6 +713,14 @@
                       "error": {
                         "code": "SLUG_RESERVATION_MISMATCH",
                         "message": "slug 예약 토큰 검증에 실패했습니다."
+                      }
+                    }
+                  },
+                  "slug_already_in_use": {
+                    "value": {
+                      "error": {
+                        "code": "SLUG_ALREADY_IN_USE",
+                        "message": "이미 사용 중인 slug 입니다."
                       }
                     }
                   }
@@ -1293,8 +1301,8 @@
         "tags": [
           "Message"
         ],
-        "summary": "메시지 작성",
-        "description": "특정 캡슐에 익명 메시지를 작성합니다.",
+        "summary": "메시지 작성❤️",
+        "description": "특정 캡슐에 익명 메시지를 작성하고, 성공 시 캡슐의 최신 활동 시각을 함께 갱신합니다.",
         "parameters": [
           {
             "schema": {
@@ -1373,7 +1381,7 @@
             }
           },
           "409": {
-            "description": "DUPLICATE_NICKNAME",
+            "description": "DUPLICATE_NICKNAME | MESSAGE_LIMIT_EXCEEDED",
             "content": {
               "application/json": {
                 "schema": {
@@ -1385,6 +1393,14 @@
                       "error": {
                         "code": "DUPLICATE_NICKNAME",
                         "message": "중복된 닉네임입니다."
+                      }
+                    }
+                  },
+                  "message_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "MESSAGE_LIMIT_EXCEEDED",
+                        "message": "메시지 작성 가능 개수를 초과했습니다."
                       }
                     }
                   }

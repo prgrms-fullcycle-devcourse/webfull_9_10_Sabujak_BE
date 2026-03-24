@@ -54,11 +54,33 @@ const buildErrorResponse = (code: keyof typeof errorMessages) => ({
   },
 });
 
+const buildErrorResponses = (...codes: Array<keyof typeof errorMessages>) => ({
+  description: codes.join(" | "),
+  content: {
+    "application/json": {
+      schema: errorResponseSchema,
+      examples: Object.fromEntries(
+        codes.map((code) => [
+          code.toLowerCase(),
+          {
+            value: {
+              error: {
+                code,
+                message: errorMessages[code],
+              },
+            },
+          },
+        ]),
+      ),
+    },
+  },
+});
+
 registry.registerPath({
   method: "post",
   path: "/capsules/slug-reservations",
   tags: ["Capsule"],
-  summary: "슬러그 예약 생성",
+  summary: "슬러그 예약 생성❤️",
   description: "중복 확인 후 슬러그 예약 토큰을 발급합니다.",
   request: {
     body: {
@@ -89,8 +111,9 @@ registry.registerPath({
   method: "post",
   path: "/capsules",
   tags: ["Capsule"],
-  summary: "캡슐 생성",
-  description: "예약 토큰을 포함해 신규 타임캡슐을 생성합니다.",
+  summary: "캡슐 생성❤️",
+  description:
+    "예약 토큰을 검증한 뒤 신규 타임캡슐을 생성하고, openAt 기준으로 expiresAt을 계산합니다.",
   request: {
     body: {
       required: true,
@@ -111,7 +134,10 @@ registry.registerPath({
       },
     },
     400: buildErrorResponse("INVALID_INPUT"),
-    409: buildErrorResponse("SLUG_RESERVATION_MISMATCH"),
+    409: buildErrorResponses(
+      "SLUG_RESERVATION_MISMATCH",
+      "SLUG_ALREADY_IN_USE",
+    ),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
 });
@@ -278,8 +304,9 @@ registry.registerPath({
   method: "post",
   path: "/capsules/{slug}/messages",
   tags: ["Message"],
-  summary: "메시지 작성",
-  description: "특정 캡슐에 익명 메시지를 작성합니다.",
+  summary: "메시지 작성❤️",
+  description:
+    "특정 캡슐에 익명 메시지를 작성하고, 성공 시 캡슐의 최신 활동 시각을 함께 갱신합니다.",
   request: {
     params: capsuleSlugParamsSchema,
     body: {
@@ -302,7 +329,10 @@ registry.registerPath({
     },
     400: buildErrorResponse("INVALID_INPUT"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
-    409: buildErrorResponse("DUPLICATE_NICKNAME"),
+    409: buildErrorResponses(
+      "DUPLICATE_NICKNAME",
+      "MESSAGE_LIMIT_EXCEEDED",
+    ),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
