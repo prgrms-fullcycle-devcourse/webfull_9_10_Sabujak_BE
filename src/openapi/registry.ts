@@ -146,7 +146,7 @@ registry.registerPath({
   method: "get",
   path: "/capsules/{slug}",
   tags: ["Capsule"],
-  summary: "캡슐 조회",
+  summary: "캡슐 조회❤️",
   description: "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
   request: {
     params: capsuleSlugParamsSchema,
