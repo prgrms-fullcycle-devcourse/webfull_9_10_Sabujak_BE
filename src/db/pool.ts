@@ -8,17 +8,26 @@ type PoolLike = {
 };
 type PoolErrorLogger = (message: string, error: Error) => void;
 
-export const createPoolConfig = (): PoolConfig => {
-  const isProduction = process.env.NODE_ENV === "production";
+type PoolEnv = NodeJS.ProcessEnv;
+
+const normalizeConnectionString = (connectionString?: string) => {
+  const trimmedConnectionString = connectionString?.trim();
+
+  return trimmedConnectionString ? trimmedConnectionString : undefined;
+};
+
+export const createPoolConfig = (env: PoolEnv = process.env): PoolConfig => {
+  const isProduction = env.NODE_ENV === "production";
+  const connectionString = normalizeConnectionString(env.DATABASE_URL);
 
   return {
-    connectionString: process.env.DATABASE_URL,
-    ...(!process.env.DATABASE_URL && {
+    connectionString,
+    ...(!connectionString && {
       host: "db",
       port: 5432,
-      user: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DB,
+      user: env.POSTGRES_USER,
+      password: env.POSTGRES_PASSWORD,
+      database: env.POSTGRES_DB,
     }),
     ssl: isProduction ? { rejectUnauthorized: false } : false,
   };

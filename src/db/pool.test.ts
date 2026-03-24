@@ -11,17 +11,15 @@ class PoolStub extends EventEmitter {
   }
 }
 
-const originalEnv = process.env;
-
 test("createPoolConfig uses docker-compose defaults when DATABASE_URL is missing", () => {
-  process.env = { ...originalEnv };
-  delete process.env.DATABASE_URL;
-  process.env.POSTGRES_USER = "local-user";
-  process.env.POSTGRES_PASSWORD = "local-password";
-  process.env.POSTGRES_DB = "local-db";
-  process.env.NODE_ENV = "development";
+  const env = {
+    NODE_ENV: "development",
+    POSTGRES_USER: "local-user",
+    POSTGRES_PASSWORD: "local-password",
+    POSTGRES_DB: "local-db",
+  };
 
-  assert.deepEqual(createPoolConfig(), {
+  assert.deepEqual(createPoolConfig(env), {
     connectionString: undefined,
     host: "db",
     port: 5432,
@@ -33,13 +31,34 @@ test("createPoolConfig uses docker-compose defaults when DATABASE_URL is missing
 });
 
 test("createPoolConfig enables ssl in production when DATABASE_URL is present", () => {
-  process.env = { ...originalEnv };
-  process.env.DATABASE_URL = "postgres://user:password@host:5432/db";
-  process.env.NODE_ENV = "production";
+  const env = {
+    NODE_ENV: "production",
+    DATABASE_URL: "postgres://user:password@host:5432/db",
+  };
 
-  assert.deepEqual(createPoolConfig(), {
+  assert.deepEqual(createPoolConfig(env), {
     connectionString: "postgres://user:password@host:5432/db",
     ssl: { rejectUnauthorized: false },
+  });
+});
+
+test("createPoolConfig treats a blank DATABASE_URL as missing", () => {
+  const env = {
+    NODE_ENV: "development",
+    DATABASE_URL: "   ",
+    POSTGRES_USER: "local-user",
+    POSTGRES_PASSWORD: "local-password",
+    POSTGRES_DB: "local-db",
+  };
+
+  assert.deepEqual(createPoolConfig(env), {
+    connectionString: undefined,
+    host: "db",
+    port: 5432,
+    user: "local-user",
+    password: "local-password",
+    database: "local-db",
+    ssl: false,
   });
 });
 
@@ -56,8 +75,4 @@ test("bindPoolErrorHandler logs pool errors instead of leaving them unhandled", 
     pool.emit("error", error);
   });
   assert.deepEqual(calls, [[poolErrorMessage, error]]);
-});
-
-process.on("exit", () => {
-  process.env = originalEnv;
 });
