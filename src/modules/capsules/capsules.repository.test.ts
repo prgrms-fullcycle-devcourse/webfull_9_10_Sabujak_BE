@@ -52,6 +52,10 @@ const {
   deleteRedisKey: jest.Mock;
 };
 
+const PAST_DATE = new Date("2000-01-01T00:00:00.000Z");
+const FUTURE_DATE = new Date("2099-01-01T00:00:00.000Z");
+const MESSAGE_CREATED_AT = new Date("2026-03-23T10:00:00.000Z");
+
 describe("CapsulesRepository", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -220,7 +224,7 @@ describe("CapsulesRepository", () => {
     it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
-        expiresAt: new Date("2026-03-22T00:00:00.000Z"),
+        expiresAt: PAST_DATE,
       });
 
       await expect(
@@ -235,7 +239,7 @@ describe("CapsulesRepository", () => {
     it("메시지가 300개면 MessageLimitExceededException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
-        expiresAt: new Date("2026-03-24T00:00:00.000Z"),
+        expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 300 }]);
       const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
@@ -253,7 +257,7 @@ describe("CapsulesRepository", () => {
     it("정상 요청이면 메시지를 저장하고 capsule.updatedAt을 함께 갱신한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
-        expiresAt: new Date("2026-03-24T00:00:00.000Z"),
+        expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 1 }]);
       const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
@@ -264,7 +268,7 @@ describe("CapsulesRepository", () => {
           id: 13,
           nickname: "익명의 멘토",
           content: "졸업을 진심으로 축하합니다!",
-          createdAt: new Date("2026-03-23T10:00:00.000Z"),
+          createdAt: MESSAGE_CREATED_AT,
         },
       ]);
       const messageValuesMock = jest
@@ -295,7 +299,7 @@ describe("CapsulesRepository", () => {
       });
       expect(db.transaction).toHaveBeenCalled();
       expect(updateSetMock).toHaveBeenCalledWith({
-        updatedAt: new Date("2026-03-23T10:00:00.000Z"),
+        updatedAt: MESSAGE_CREATED_AT,
       });
       expect(result).toEqual({
         id: 13,
@@ -308,7 +312,7 @@ describe("CapsulesRepository", () => {
     it("메시지 insert에서 unique constraint 충돌이면 DuplicateNicknameException으로 변환한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
-        expiresAt: new Date("2026-03-24T00:00:00.000Z"),
+        expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
       const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
