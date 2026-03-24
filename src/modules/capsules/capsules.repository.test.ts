@@ -1,7 +1,9 @@
+import { scryptSync } from "node:crypto";
 import {
   CapsuleExpiredException,
   CapsuleNotFoundException,
   DuplicateNicknameException,
+  ForbiddenPasswordException,
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
@@ -17,6 +19,7 @@ jest.mock("../../db", () => ({
     },
     select: jest.fn(),
     insert: jest.fn(),
+    delete: jest.fn(),
     update: jest.fn(),
     transaction: jest.fn(),
   },
@@ -37,6 +40,7 @@ const { db } = jest.requireMock("../../db") as {
     };
     select: jest.Mock;
     insert: jest.Mock;
+    delete: jest.Mock;
     update: jest.Mock;
     transaction: jest.Mock;
   };
@@ -57,6 +61,12 @@ const FUTURE_DATE = new Date("2099-01-01T00:00:00.000Z");
 const MESSAGE_CREATED_AT = new Date("2026-03-23T10:00:00.000Z");
 
 describe("CapsulesRepository", () => {
+  const buildPasswordHash = (password: string) => {
+    const salt = "0123456789abcdef0123456789abcdef";
+    const derivedKey = scryptSync(password, salt, 64).toString("hex");
+    return `${salt}:${derivedKey}`;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -462,6 +472,53 @@ describe("CapsulesRepository", () => {
           content: "메시지",
         }),
       ).rejects.toBeInstanceOf(DuplicateNicknameException);
+    });
+  });
+
+  describe("deleteCapsule", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.deleteCapsule({
+          slug: "missing-capsule",
+          password: "1234",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      await expect(
+        capsulesRepository.deleteCapsule({
+          slug: "opened-capsule",
+          password: "9999",
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenPasswordException);
+    });
+
+    it("비밀번호가 일치하면 캡슐을 Hard Delete 한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      const deleteWhereMock = jest.fn().mockResolvedValue(undefined);
+      db.delete.mockReturnValue({ where: deleteWhereMock });
+
+      await expect(
+        capsulesRepository.deleteCapsule({
+          slug: "opened-capsule",
+          password: "1234",
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(db.delete).toHaveBeenCalledTimes(1);
+      expect(deleteWhereMock).toHaveBeenCalledTimes(1);
     });
   });
 });

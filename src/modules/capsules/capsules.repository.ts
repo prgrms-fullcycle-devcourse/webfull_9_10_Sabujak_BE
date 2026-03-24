@@ -1,5 +1,5 @@
 import { asc, count, eq } from "drizzle-orm";
-import { randomBytes, randomUUID, scrypt } from "node:crypto";
+import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
 import {
@@ -15,6 +15,7 @@ import {
   CapsuleExpiredException,
   CapsuleNotFoundException,
   DuplicateNicknameException,
+  ForbiddenPasswordException,
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
@@ -78,6 +79,25 @@ const hashPassword = async (password: string) => {
   const salt = randomBytes(16).toString("hex");
   const derivedKey = (await deriveScryptKey(password, salt)).toString("hex");
   return `${salt}:${derivedKey}`;
+};
+
+const verifyPasswordHash = async (password: string, passwordHash: string) => {
+  const [salt, storedDerivedKey] = passwordHash.split(":");
+
+  if (!salt || !storedDerivedKey) {
+    return false;
+  }
+
+  const derivedKey = (await deriveScryptKey(password, salt)).toString("hex");
+  const storedBuffer = Buffer.from(storedDerivedKey, "hex");
+  const derivedBuffer = Buffer.from(derivedKey, "hex");
+
+  // timingSafeEqual 비교 전 길이를 먼저 맞춰 예외를 방지합니다.
+  if (storedBuffer.length !== derivedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(storedBuffer, derivedBuffer);
 };
 
 const calculateExpiresAt = (openAt: Date) => {
@@ -264,8 +284,30 @@ export class CapsulesRepository {
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
-    void input;
-    return;
+    // 삭제 전 slug 로 대상 캡슐과 관리자 비밀번호 hash 를 함께 확인합니다.
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        id: true,
+        passwordHash: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    const isPasswordValid = await verifyPasswordHash(
+      input.password,
+      capsule.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new ForbiddenPasswordException();
+    }
+
+    // messages 는 FK ON DELETE CASCADE 로 함께 정리되므로 capsule 만 삭제합니다.
+    await db.delete(capsules).where(eq(capsules.id, capsule.id));
   }
 
   async createMessage(input: CreateMessageInputDto) {
