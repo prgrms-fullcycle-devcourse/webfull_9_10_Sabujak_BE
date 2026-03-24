@@ -11,10 +11,19 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
   }
 
   if (err instanceof ZodError) {
+    const details = err.issues.map((issue) => ({
+      field:
+        issue.path.length > 0
+          ? issue.path.map((segment) => String(segment)).join(".")
+          : "root",
+      message: issue.message,
+    }));
+
     res.status(400).json({
       error: {
         code: "INVALID_INPUT",
-        message: err.issues[0]?.message ?? defaultValidationMessage,
+        message: defaultValidationMessage,
+        details,
       },
     });
     return;
