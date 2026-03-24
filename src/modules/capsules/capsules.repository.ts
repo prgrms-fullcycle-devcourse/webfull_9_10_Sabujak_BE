@@ -16,6 +16,7 @@ import {
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
+  CapsuleAlreadyOpenedException,
 } from "../../common/exceptions/domain-exception";
 import {
   CreateCapsuleInputDto,
@@ -285,6 +286,8 @@ export class CapsulesRepository {
       columns: {
         id: true,
         passwordHash: true,
+        openAt: true,
+        expiresAt: true,
       },
       where: eq(capsules.slug, input.slug),
     });
@@ -300,6 +303,16 @@ export class CapsulesRepository {
 
     if (!isPasswordValid) {
       throw new ForbiddenPasswordException();
+    }
+
+    const now = Date.now();
+
+    if (capsule.expiresAt.getTime() <= now) {
+      throw new CapsuleExpiredException();
+    }
+
+    if (capsule.openAt.getTime() <= now) {
+      throw new CapsuleAlreadyOpenedException();
     }
     // 여기까지 캡슐과 pw 확인 로직임
 

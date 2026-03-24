@@ -7,6 +7,7 @@ export const errorCodes = [
   "DUPLICATE_NICKNAME",
   "MESSAGE_LIMIT_EXCEEDED",
   "CAPSULE_EXPIRED",
+  "CAPSULE_ALREADY_OPENED",
   "TOO_MANY_REQUESTS",
   "INTERNAL_SERVER_ERROR",
 ] as const;
@@ -77,6 +78,13 @@ export class CapsuleExpiredException extends DomainException {
   constructor(message = "만료된 캡슐입니다.") {
     super(410, "CAPSULE_EXPIRED", message);
     this.name = "CapsuleExpiredException";
+  }
+}
+
+export class CapsuleAlreadyOpenedException extends DomainException {
+  constructor(message = "이미 공개된 캡슐입니다.") {
+    super(409, "CAPSULE_ALREADY_OPENED", message);
+    this.name = "CapsuleAlreadyOpenedException";
   }
 }
 
