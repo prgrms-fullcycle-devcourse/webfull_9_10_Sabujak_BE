@@ -12,6 +12,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING:-false}
       - REDIS_URL=redis://redis:6379
+      - DATABASE_SCHEMA_AUTO_REPAIR=true
     volumes:
       - ./src:/app/src
     networks:
