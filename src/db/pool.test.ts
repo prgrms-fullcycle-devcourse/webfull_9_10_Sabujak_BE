@@ -1,7 +1,4 @@
-import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import test from "node:test";
-
 import { bindPoolErrorHandler, createPoolConfig, poolErrorMessage } from "./pool";
 
 class PoolStub extends EventEmitter {
@@ -11,68 +8,73 @@ class PoolStub extends EventEmitter {
   }
 }
 
-test("createPoolConfig uses docker-compose defaults when DATABASE_URL is missing", () => {
-  const env = {
-    NODE_ENV: "development",
-    POSTGRES_USER: "local-user",
-    POSTGRES_PASSWORD: "local-password",
-    POSTGRES_DB: "local-db",
-  };
+describe("createPoolConfig", () => {
+  it("uses docker-compose defaults when DATABASE_URL is missing", () => {
+    const env = {
+      NODE_ENV: "development",
+      POSTGRES_USER: "local-user",
+      POSTGRES_PASSWORD: "local-password",
+      POSTGRES_DB: "local-db",
+    };
 
-  assert.deepEqual(createPoolConfig(env), {
-    connectionString: undefined,
-    host: "db",
-    port: 5432,
-    user: "local-user",
-    password: "local-password",
-    database: "local-db",
-    ssl: false,
+    expect(createPoolConfig(env)).toEqual({
+      connectionString: undefined,
+      host: "db",
+      port: 5432,
+      user: "local-user",
+      password: "local-password",
+      database: "local-db",
+      ssl: false,
+    });
+  });
+
+  it("enables ssl in production when DATABASE_URL is present", () => {
+    const env = {
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://user:password@host:5432/db",
+    };
+
+    expect(createPoolConfig(env)).toEqual({
+      connectionString: "postgres://user:password@host:5432/db",
+      ssl: { rejectUnauthorized: false },
+    });
+  });
+
+  it("treats a blank DATABASE_URL as missing", () => {
+    const env = {
+      NODE_ENV: "development",
+      DATABASE_URL: "   ",
+      POSTGRES_USER: "local-user",
+      POSTGRES_PASSWORD: "local-password",
+      POSTGRES_DB: "local-db",
+    };
+
+    expect(createPoolConfig(env)).toEqual({
+      connectionString: undefined,
+      host: "db",
+      port: 5432,
+      user: "local-user",
+      password: "local-password",
+      database: "local-db",
+      ssl: false,
+    });
   });
 });
 
-test("createPoolConfig enables ssl in production when DATABASE_URL is present", () => {
-  const env = {
-    NODE_ENV: "production",
-    DATABASE_URL: "postgres://user:password@host:5432/db",
-  };
+describe("bindPoolErrorHandler", () => {
+  it("logs pool errors instead of leaving them unhandled", () => {
+    const pool = new PoolStub();
+    const calls: Array<[string, Error]> = [];
+    const error = new Error("Connection terminated unexpectedly");
 
-  assert.deepEqual(createPoolConfig(env), {
-    connectionString: "postgres://user:password@host:5432/db",
-    ssl: { rejectUnauthorized: false },
+    bindPoolErrorHandler(pool, (message, loggedError) => {
+      calls.push([message, loggedError]);
+    });
+
+    expect(() => {
+      pool.emit("error", error);
+    }).not.toThrow();
+
+    expect(calls).toEqual([[poolErrorMessage, error]]);
   });
-});
-
-test("createPoolConfig treats a blank DATABASE_URL as missing", () => {
-  const env = {
-    NODE_ENV: "development",
-    DATABASE_URL: "   ",
-    POSTGRES_USER: "local-user",
-    POSTGRES_PASSWORD: "local-password",
-    POSTGRES_DB: "local-db",
-  };
-
-  assert.deepEqual(createPoolConfig(env), {
-    connectionString: undefined,
-    host: "db",
-    port: 5432,
-    user: "local-user",
-    password: "local-password",
-    database: "local-db",
-    ssl: false,
-  });
-});
-
-test("bindPoolErrorHandler logs pool errors instead of leaving them unhandled", () => {
-  const pool = new PoolStub();
-  const calls: Array<[string, Error]> = [];
-  const error = new Error("Connection terminated unexpectedly");
-
-  bindPoolErrorHandler(pool, (message, loggedError) => {
-    calls.push([message, loggedError]);
-  });
-
-  assert.doesNotThrow(() => {
-    pool.emit("error", error);
-  });
-  assert.deepEqual(calls, [[poolErrorMessage, error]]);
 });
