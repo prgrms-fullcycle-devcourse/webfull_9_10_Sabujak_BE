@@ -2,10 +2,7 @@ import { asc, count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
-import {
-  buildCapsuleBaseMock,
-  buildVerifyPasswordMock,
-} from "../../mocks/capsule.mock";
+import { buildVerifyPasswordMock } from "../../mocks/capsule.mock";
 import {
   deleteRedisKey,
   getRedisStringValue,
@@ -54,8 +51,9 @@ const encodeBase32 = (value: number, length: number) => {
 
 const generateUlid = () => {
   const timePart = encodeBase32(Date.now(), 10);
-  const randomPart = Array.from(randomBytes(16), (byte) =>
-    ULID_ALPHABET[byte % 32],
+  const randomPart = Array.from(
+    randomBytes(16),
+    (byte) => ULID_ALPHABET[byte % 32],
   )
     .slice(0, 16)
     .join("");
@@ -280,7 +278,55 @@ export class CapsulesRepository {
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
-    return buildCapsuleBaseMock(input);
+    // 여기서 업데이트 로직
+
+    // 아래의 deleteCapsule의 로직 들고오기 \^.^/
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        id: true,
+        passwordHash: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    const isPasswordValid = await verifyPasswordHash(
+      input.password,
+      capsule.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new ForbiddenPasswordException();
+    }
+    // 여기까지 캡슐과 pw 확인 로직임
+
+    const newOpenAt = new Date(input.openAt); // 사용자가 원하는 캡슐 공개 일시
+    const newExpiresAt = calculateExpiresAt(newOpenAt); // 사용자가 원했던 날짜를 기준으로 만료 시간 계산
+
+    const [updatedCapsule] = await db
+      .update(capsules)
+      .set({
+        title: input.title, // 전달받은 방 제목
+        openAt: newOpenAt, // 새로 설정된 공개 일시
+        expiresAt: newExpiresAt, // 새로 계산 된 만료일시
+        updatedAt: new Date(), // 수정 시각 갱신
+      })
+      .where(eq(capsules.id, capsule.id)) // 조건 - 위의 캡슐 아이디와 db 테이블 안에 있는 값과 비교
+      .returning();
+
+    return {
+      // 반환
+      id: updatedCapsule.id,
+      slug: updatedCapsule.slug,
+      title: updatedCapsule.title,
+      openAt: updatedCapsule.openAt.toISOString(),
+      expiresAt: updatedCapsule.expiresAt.toISOString(),
+      createdAt: updatedCapsule.createdAt.toISOString(),
+      updatedAt: updatedCapsule.updatedAt.toISOString(),
+    };
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
