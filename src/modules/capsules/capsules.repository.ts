@@ -1,10 +1,9 @@
-import { count, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scrypt } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
 import {
   buildCapsuleBaseMock,
-  buildCapsuleDetailMock,
   buildVerifyPasswordMock,
 } from "../../mocks/capsule.mock";
 import {
@@ -183,7 +182,76 @@ export class CapsulesRepository {
   }
 
   async getCapsule(input: GetCapsuleInputDto) {
-    return buildCapsuleDetailMock(input.slug);
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        id: true,
+        slug: true,
+        title: true,
+        openAt: true,
+        expiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    const now = Date.now();
+
+    if (capsule.expiresAt.getTime() <= now) {
+      throw new CapsuleExpiredException();
+    }
+
+    const baseResponse = {
+      id: capsule.id,
+      slug: capsule.slug,
+      title: capsule.title,
+      openAt: capsule.openAt.toISOString(),
+      expiresAt: capsule.expiresAt.toISOString(),
+      createdAt: capsule.createdAt.toISOString(),
+      updatedAt: capsule.updatedAt.toISOString(),
+    };
+
+    if (capsule.openAt.getTime() > now) {
+      // 공개 전에는 메시지 목록을 노출하지 않으므로 건수만 별도로 계산합니다.
+      const [{ messageCount }] = await db
+        .select({ messageCount: count() })
+        .from(messages)
+        .where(eq(messages.capsuleId, capsule.id));
+
+      return {
+        ...baseResponse,
+        isOpen: false as const,
+        messageCount,
+      };
+    }
+
+    // 공개 이후에는 메시지 화면에서 그대로 사용할 수 있도록 id 오름차순으로 조회합니다.
+    const capsuleMessages = await db
+      .select({
+        id: messages.id,
+        nickname: messages.nickname,
+        content: messages.content,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(eq(messages.capsuleId, capsule.id))
+      .orderBy(asc(messages.id));
+
+    return {
+      ...baseResponse,
+      isOpen: true as const,
+      messageCount: capsuleMessages.length,
+      messages: capsuleMessages.map((message) => ({
+        id: message.id,
+        nickname: message.nickname,
+        content: message.content,
+        createdAt: message.createdAt.toISOString(),
+      })),
+    };
   }
 
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {

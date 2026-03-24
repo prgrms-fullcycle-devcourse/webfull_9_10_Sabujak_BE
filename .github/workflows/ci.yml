@@ -2,9 +2,6 @@ name: CI Pipeline
 
 on:
   pull_request:
-    branches:
-      - main
-      - feature/capsules-error-input-foundation
 
 # 워크플로우에 부여되는 기본 권한을 최소화 (읽기 전용)
 permissions:
