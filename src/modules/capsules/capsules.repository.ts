@@ -33,6 +33,9 @@ const SLUG_RESERVATION_TTL_SECONDS = 300;
 const SLUG_RESERVATION_KEY_PREFIX = "capsule:slug-reservation:";
 const CAPSULE_OPEN_DURATION_DAYS = 7;
 const MESSAGE_LIMIT_PER_CAPSULE = 300;
+const POSTGRES_UNIQUE_VIOLATION_CODE = "23505";
+const CAPSULE_SLUG_UNIQUE_CONSTRAINT = "capsules_slug_unq";
+const MESSAGE_NICKNAME_UNIQUE_CONSTRAINT = "messages_capsule_id_nickname_unq";
 
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
@@ -103,6 +106,38 @@ const verifyPasswordHash = async (password: string, passwordHash: string) => {
 const calculateExpiresAt = (openAt: Date) => {
   return new Date(
     openAt.getTime() + CAPSULE_OPEN_DURATION_DAYS * 24 * 60 * 60 * 1000,
+  );
+};
+
+const getNestedErrorValue = (
+  error: unknown,
+  key: "code" | "constraint",
+): string | undefined => {
+  if (typeof error !== "object" || error === null) {
+    return undefined;
+  }
+
+  const record = error as Record<string, unknown>;
+  const value = record[key];
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if ("cause" in record) {
+    return getNestedErrorValue(record.cause, key);
+  }
+
+  return undefined;
+};
+
+const isUniqueConstraintViolation = (
+  error: unknown,
+  constraint: string,
+): boolean => {
+  return (
+    getNestedErrorValue(error, "code") === POSTGRES_UNIQUE_VIOLATION_CODE &&
+    getNestedErrorValue(error, "constraint") === constraint
   );
 };
 
@@ -188,12 +223,7 @@ export class CapsulesRepository {
         updatedAt: createdCapsule.updatedAt.toISOString(),
       };
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "23505"
-      ) {
+      if (isUniqueConstraintViolation(error, CAPSULE_SLUG_UNIQUE_CONSTRAINT)) {
         throw new SlugAlreadyInUseException();
       }
 
@@ -423,10 +453,10 @@ export class CapsulesRepository {
       });
     } catch (error) {
       if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "23505"
+        isUniqueConstraintViolation(
+          error,
+          MESSAGE_NICKNAME_UNIQUE_CONSTRAINT,
+        )
       ) {
         throw new DuplicateNicknameException();
       }
