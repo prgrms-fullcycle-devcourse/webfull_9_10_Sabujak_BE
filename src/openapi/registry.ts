@@ -244,7 +244,8 @@ registry.registerPath({
   path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 수정❤️",
-  description: "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다.",
+  description:
+    "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다.",
   request: {
     params: capsuleSlugParamsSchema,
     body: {

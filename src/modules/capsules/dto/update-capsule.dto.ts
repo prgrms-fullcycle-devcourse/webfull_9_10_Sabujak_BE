@@ -12,6 +12,7 @@ export const updateCapsuleBodySchema = z
     password: passwordSchema,
     title: titleSchema,
     openAt: isoDateTimeStringSchema.openapi({
+      description: "현재 시각 이후의 공개 예정 시각(ISO 8601)",
       example: capsuleMockExamples.openAt,
     }),
   })
