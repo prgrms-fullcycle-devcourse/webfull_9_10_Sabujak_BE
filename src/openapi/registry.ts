@@ -31,6 +31,7 @@ const errorMessages = {
   DUPLICATE_NICKNAME: "중복된 닉네임입니다.",
   MESSAGE_LIMIT_EXCEEDED: "메시지 작성 가능 개수를 초과했습니다.",
   CAPSULE_EXPIRED: "만료된 캡슐입니다.",
+  CAPSULE_ALREADY_OPENED: "이미 공개된 캡슐입니다.",
   TOO_MANY_REQUESTS: "요청 횟수 제한을 초과했습니다.",
   INTERNAL_SERVER_ERROR: "서버 내부 오류가 발생했습니다.",
 } as const;
@@ -242,7 +243,7 @@ registry.registerPath({
   method: "patch",
   path: "/capsules/{slug}",
   tags: ["Capsule"],
-  summary: "캡슐 수정",
+  summary: "캡슐 수정❤️",
   description: "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다.",
   request: {
     params: capsuleSlugParamsSchema,
@@ -267,6 +268,7 @@ registry.registerPath({
     400: buildErrorResponse("INVALID_INPUT"),
     403: buildErrorResponse("FORBIDDEN_PASSWORD"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
+    409: buildErrorResponse("CAPSULE_ALREADY_OPENED"),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
