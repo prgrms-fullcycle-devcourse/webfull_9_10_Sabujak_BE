@@ -1000,7 +1000,8 @@
                   "capsule_already_opened": {
                     "value": {
                       "error": {
-                        "code": "CAPSULE_ALREADY_OPENED"
+                        "code": "CAPSULE_ALREADY_OPENED",
+                        "message": "이미 공개된 캡슐입니다."
                       }
                     }
                   }
