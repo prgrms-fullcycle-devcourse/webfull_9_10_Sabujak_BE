@@ -1,5 +1,6 @@
 import { scryptSync } from "node:crypto";
 import {
+  CapsuleAlreadyOpenedException,
   CapsuleExpiredException,
   CapsuleNotFoundException,
   DuplicateNicknameException,
@@ -472,6 +473,125 @@ describe("CapsulesRepository", () => {
           content: "메시지",
         }),
       ).rejects.toBeInstanceOf(DuplicateNicknameException);
+    });
+  });
+
+  describe("updateCapsule", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "missing-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: FUTURE_DATE,
+        expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+      });
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "opened-capsule",
+          password: "9999",
+          title: "수정된 캡슐",
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenPasswordException);
+    });
+
+    it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: new Date("1999-12-25T00:00:00.000Z"),
+        expiresAt: PAST_DATE,
+      });
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "expired-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleExpiredException);
+    });
+
+    it("이미 공개된 캡슐이면 CapsuleAlreadyOpenedException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: PAST_DATE,
+        expiresAt: FUTURE_DATE,
+      });
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "opened-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleAlreadyOpenedException);
+    });
+
+    it("수정 가능 상태면 openAt 기준으로 expiresAt을 재계산해 저장한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: new Date("2099-01-02T00:00:00.000Z"),
+        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
+      });
+
+      const returningMock = jest.fn().mockResolvedValue([
+        {
+          id: "01TESTCAPSULEID123456789012",
+          slug: "updated-capsule",
+          title: "수정된 캡슐",
+          openAt: new Date("2099-12-25T12:00:00.000Z"),
+          expiresAt: new Date("2100-01-01T12:00:00.000Z"),
+          createdAt: new Date("2026-03-23T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-25T00:00:00.000Z"),
+        },
+      ]);
+      const whereMock = jest.fn().mockReturnValue({ returning: returningMock });
+      const setMock = jest.fn().mockReturnValue({ where: whereMock });
+      db.update.mockReturnValue({ set: setMock });
+
+      const result = await capsulesRepository.updateCapsule({
+        slug: "updated-capsule",
+        password: "1234",
+        title: "수정된 캡슐",
+        openAt: "2099-12-25T12:00:00.000Z",
+      });
+
+      expect(db.update).toHaveBeenCalledTimes(1);
+      expect(setMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "수정된 캡슐",
+          openAt: new Date("2099-12-25T12:00:00.000Z"),
+          expiresAt: new Date("2100-01-01T12:00:00.000Z"),
+          updatedAt: expect.any(Date),
+        }),
+      );
+      expect(result).toEqual({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "updated-capsule",
+        title: "수정된 캡슐",
+        openAt: "2099-12-25T12:00:00.000Z",
+        expiresAt: "2100-01-01T12:00:00.000Z",
+        createdAt: "2026-03-23T00:00:00.000Z",
+        updatedAt: "2026-03-25T00:00:00.000Z",
+      });
     });
   });
 
