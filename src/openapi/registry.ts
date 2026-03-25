@@ -242,7 +242,7 @@ registry.registerPath({
   method: "patch",
   path: "/capsules/{slug}",
   tags: ["Capsule"],
-  summary: "캡슐 수정",
+  summary: "캡슐 수정❤️",
   description: "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다.",
   request: {
     params: capsuleSlugParamsSchema,
@@ -267,6 +267,7 @@ registry.registerPath({
     400: buildErrorResponse("INVALID_INPUT"),
     403: buildErrorResponse("FORBIDDEN_PASSWORD"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
+    409: buildErrorResponse("CAPSULE_ALREADY_OPENED"),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },

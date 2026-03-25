@@ -890,7 +890,7 @@
         "tags": [
           "Capsule"
         ],
-        "summary": "캡슐 수정",
+        "summary": "캡슐 수정❤️",
         "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다.",
         "parameters": [
           {
@@ -982,6 +982,25 @@
                       "error": {
                         "code": "CAPSULE_NOT_FOUND",
                         "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CAPSULE_ALREADY_OPENED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_already_opened": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_ALREADY_OPENED"
                       }
                     }
                   }
