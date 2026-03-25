@@ -109,36 +109,26 @@ const calculateExpiresAt = (openAt: Date) => {
   );
 };
 
-const getNestedErrorValue = (
-  error: unknown,
-  key: "code" | "constraint",
-): string | undefined => {
-  if (typeof error !== "object" || error === null) {
-    return undefined;
-  }
-
-  const record = error as Record<string, unknown>;
-  const value = record[key];
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if ("cause" in record) {
-    return getNestedErrorValue(record.cause, key);
-  }
-
-  return undefined;
-};
-
 const isUniqueConstraintViolation = (
   error: unknown,
   constraint: string,
 ): boolean => {
-  return (
-    getNestedErrorValue(error, "code") === POSTGRES_UNIQUE_VIOLATION_CODE &&
-    getNestedErrorValue(error, "constraint") === constraint
-  );
+  let currentError: unknown = error;
+
+  while (typeof currentError === "object" && currentError !== null) {
+    const record = currentError as Record<string, unknown>;
+
+    if (
+      record.code === POSTGRES_UNIQUE_VIOLATION_CODE &&
+      record.constraint === constraint
+    ) {
+      return true;
+    }
+
+    currentError = record.cause;
+  }
+
+  return false;
 };
 
 export class CapsulesRepository {
@@ -210,10 +200,7 @@ export class CapsulesRepository {
         })
         .returning();
 
-      // 사용이 끝난 예약은 즉시 제거해 동일 토큰 재사용을 막습니다.
-      await deleteRedisKey(reservationKey);
-
-      return {
+      const response = {
         id: createdCapsule.id,
         slug: createdCapsule.slug,
         title: createdCapsule.title,
@@ -222,6 +209,18 @@ export class CapsulesRepository {
         createdAt: createdCapsule.createdAt.toISOString(),
         updatedAt: createdCapsule.updatedAt.toISOString(),
       };
+
+      try {
+        // 사용이 끝난 예약은 즉시 제거해 동일 토큰 재사용을 막습니다.
+        await deleteRedisKey(reservationKey);
+      } catch (error) {
+        console.error(
+          "[capsules] Failed to clean up slug reservation after capsule creation.",
+          error,
+        );
+      }
+
+      return response;
     } catch (error) {
       if (isUniqueConstraintViolation(error, CAPSULE_SLUG_UNIQUE_CONSTRAINT)) {
         throw new SlugAlreadyInUseException();
