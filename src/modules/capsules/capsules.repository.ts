@@ -10,13 +10,14 @@ import {
 } from "../../redis";
 import {
   CapsuleExpiredException,
+  CapsuleAlreadyOpenedException,
   CapsuleNotFoundException,
   DuplicateNicknameException,
   ForbiddenPasswordException,
+  InvalidInputException,
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
-  CapsuleAlreadyOpenedException,
 } from "../../common/exceptions/domain-exception";
 import {
   CreateCapsuleInputDto,
@@ -279,9 +280,7 @@ export class CapsulesRepository {
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
-    // 여기서 업데이트 로직
-
-    // 아래의 deleteCapsule의 로직 들고오기 \^.^/
+    // 수정 전 대상 캡슐 존재 여부, 관리자 비밀번호, 공개 가능 상태를 함께 검증합니다.
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
@@ -314,24 +313,26 @@ export class CapsulesRepository {
     if (capsule.openAt.getTime() <= now) {
       throw new CapsuleAlreadyOpenedException();
     }
-    // 여기까지 캡슐과 pw 확인 로직임
 
-    const newOpenAt = new Date(input.openAt); // 사용자가 원하는 캡슐 공개 일시
-    const newExpiresAt = calculateExpiresAt(newOpenAt); // 사용자가 원했던 날짜를 기준으로 만료 시간 계산
+    const newOpenAt = new Date(input.openAt);
+    // 아직 공개 전인 캡슐이라도, 과거 시각으로 되돌려 즉시 만료시키는 수정은 허용하지 않습니다.
+    if (newOpenAt.getTime() <= now) {
+      throw new InvalidInputException("캡슐 공개 시각은 현재 이후여야 합니다.");
+    }
+    const newExpiresAt = calculateExpiresAt(newOpenAt);
 
     const [updatedCapsule] = await db
       .update(capsules)
       .set({
-        title: input.title, // 전달받은 방 제목
-        openAt: newOpenAt, // 새로 설정된 공개 일시
-        expiresAt: newExpiresAt, // 새로 계산 된 만료일시
-        updatedAt: new Date(), // 수정 시각 갱신
+        title: input.title,
+        openAt: newOpenAt,
+        expiresAt: newExpiresAt,
+        updatedAt: new Date(),
       })
-      .where(eq(capsules.id, capsule.id)) // 조건 - 위의 캡슐 아이디와 db 테이블 안에 있는 값과 비교
+      .where(eq(capsules.id, capsule.id))
       .returning();
 
     return {
-      // 반환
       id: updatedCapsule.id,
       slug: updatedCapsule.slug,
       title: updatedCapsule.title,

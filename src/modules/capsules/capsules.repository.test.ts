@@ -5,6 +5,7 @@ import {
   CapsuleNotFoundException,
   DuplicateNicknameException,
   ForbiddenPasswordException,
+  InvalidInputException,
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
@@ -542,6 +543,24 @@ describe("CapsulesRepository", () => {
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(CapsuleAlreadyOpenedException);
+    });
+
+    it("openAt이 현재보다 과거면 InvalidInputException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: FUTURE_DATE,
+        expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+      });
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "opened-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          openAt: "2000-01-01T00:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(InvalidInputException);
     });
 
     it("수정 가능 상태면 openAt 기준으로 expiresAt을 재계산해 저장한다", async () => {
