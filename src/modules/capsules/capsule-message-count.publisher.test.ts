@@ -66,6 +66,22 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
     expect(response.writes[1]).toContain('"messageCount":2');
   });
 
+  it("더 작은 count가 늦게 들어오면 역전 이벤트를 전송하지 않는다", () => {
+    const response = new MockSseResponse();
+
+    publisher.subscribe({
+      slug: "opened-capsule",
+      response: response as never,
+      initialMessageCount: 1,
+    });
+
+    publisher.publish("opened-capsule", { messageCount: 3 });
+    publisher.publish("opened-capsule", { messageCount: 2 });
+
+    expect(response.writes).toHaveLength(2);
+    expect(response.writes[1]).toContain('"messageCount":3');
+  });
+
   it("close 이벤트가 발생하면 subscriber를 정리한다", () => {
     const response = new MockSseResponse();
 

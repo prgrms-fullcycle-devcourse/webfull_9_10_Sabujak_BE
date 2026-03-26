@@ -6,6 +6,11 @@ type MessageCountSubscriber = {
   response: Response;
 };
 
+type MessageCountChannel = {
+  lastDeliveredCount: number;
+  subscribers: Set<MessageCountSubscriber>;
+};
+
 type SubscribeInput = {
   slug: string;
   response: Response;
@@ -27,7 +32,7 @@ export interface CapsuleMessageCountPublisher {
 }
 
 export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCountPublisher {
-  private readonly subscribers = new Map<string, Set<MessageCountSubscriber>>();
+  private readonly channels = new Map<string, MessageCountChannel>();
   private nextSubscriberId = 1;
 
   subscribe({ slug, response, initialMessageCount }: SubscribeInput) {
@@ -44,10 +49,12 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
     };
     this.nextSubscriberId += 1;
 
-    const group =
-      this.subscribers.get(slug) ?? new Set<MessageCountSubscriber>();
-    group.add(subscriber);
-    this.subscribers.set(slug, group);
+    const channel = this.getOrCreateChannel(slug, initialMessageCount);
+    channel.lastDeliveredCount = Math.max(
+      channel.lastDeliveredCount,
+      initialMessageCount,
+    );
+    channel.subscribers.add(subscriber);
 
     response.write(
       formatSseEvent("messageCount", { messageCount: initialMessageCount }),
@@ -61,20 +68,20 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
       clearInterval(heartbeatTimer);
       response.off("close", cleanup);
 
-      const currentGroup = this.subscribers.get(slug);
+      const channel = this.channels.get(slug);
 
-      if (!currentGroup) {
+      if (!channel) {
         return;
       }
 
-      currentGroup.forEach((candidate) => {
+      channel.subscribers.forEach((candidate) => {
         if (candidate.id === subscriber.id) {
-          currentGroup.delete(candidate);
+          channel.subscribers.delete(candidate);
         }
       });
 
-      if (currentGroup.size === 0) {
-        this.subscribers.delete(slug);
+      if (channel.subscribers.size === 0) {
+        this.channels.delete(slug);
       }
     };
 
@@ -84,15 +91,22 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
   }
 
   publish(slug: string, payload: PublishPayload) {
-    const group = this.subscribers.get(slug);
+    const channel = this.channels.get(slug);
 
-    if (!group || group.size === 0) {
+    if (!channel || channel.subscribers.size === 0) {
       return;
     }
 
+    // 생성 이벤트만 존재하는 현재 범위에서는 더 작은 count를 늦게 보내지 않습니다.
+    if (payload.messageCount < channel.lastDeliveredCount) {
+      return;
+    }
+
+    channel.lastDeliveredCount = payload.messageCount;
+
     const event = formatSseEvent("messageCount", payload);
 
-    Array.from(group).forEach((subscriber) => {
+    Array.from(channel.subscribers).forEach((subscriber) => {
       try {
         subscriber.response.write(event);
       } catch (error) {
@@ -104,21 +118,37 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
       }
     });
 
-    if (group.size === 0) {
-      this.subscribers.delete(slug);
+    if (channel.subscribers.size === 0) {
+      this.channels.delete(slug);
     }
   }
 
   getSubscriberCount(slug: string) {
-    return this.subscribers.get(slug)?.size ?? 0;
+    return this.channels.get(slug)?.subscribers.size ?? 0;
   }
 
   clear() {
-    Array.from(this.subscribers.values()).forEach((group) => {
-      Array.from(group).forEach((subscriber) => {
+    Array.from(this.channels.values()).forEach((channel) => {
+      Array.from(channel.subscribers).forEach((subscriber) => {
         subscriber.cleanup();
       });
     });
+  }
+
+  private getOrCreateChannel(slug: string, initialMessageCount: number) {
+    const existingChannel = this.channels.get(slug);
+
+    if (existingChannel) {
+      return existingChannel;
+    }
+
+    const channel: MessageCountChannel = {
+      lastDeliveredCount: initialMessageCount,
+      subscribers: new Set<MessageCountSubscriber>(),
+    };
+
+    this.channels.set(slug, channel);
+    return channel;
   }
 }
 
