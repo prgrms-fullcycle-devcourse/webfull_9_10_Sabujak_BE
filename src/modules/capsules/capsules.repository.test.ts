@@ -48,15 +48,12 @@ const { db } = jest.requireMock("../../db") as {
   };
 };
 
-const {
-  getRedisStringValue,
-  setRedisStringIfAbsent,
-  deleteRedisKey,
-} = jest.requireMock("../../redis") as {
-  getRedisStringValue: jest.Mock;
-  setRedisStringIfAbsent: jest.Mock;
-  deleteRedisKey: jest.Mock;
-};
+const { getRedisStringValue, setRedisStringIfAbsent, deleteRedisKey } =
+  jest.requireMock("../../redis") as {
+    getRedisStringValue: jest.Mock;
+    setRedisStringIfAbsent: jest.Mock;
+    deleteRedisKey: jest.Mock;
+  };
 
 const PAST_DATE = new Date("2000-01-01T00:00:00.000Z");
 const FUTURE_DATE = new Date("2099-01-01T00:00:00.000Z");
@@ -165,7 +162,9 @@ describe("CapsulesRepository", () => {
           updatedAt: new Date("2026-03-23T00:00:00.000Z"),
         },
       ]);
-      const valuesMock = jest.fn().mockReturnValue({ returning: returningMock });
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
       db.insert.mockReturnValue({ values: valuesMock });
 
       const result = await capsulesRepository.createCapsule({
@@ -205,7 +204,9 @@ describe("CapsulesRepository", () => {
       getRedisStringValue.mockResolvedValue("valid-token");
 
       const returningMock = jest.fn().mockRejectedValue({ code: "23505" });
-      const valuesMock = jest.fn().mockReturnValue({ returning: returningMock });
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
       db.insert.mockReturnValue({ values: valuesMock });
 
       await expect(
@@ -256,8 +257,12 @@ describe("CapsulesRepository", () => {
         updatedAt: new Date("2026-03-10T00:00:00.000Z"),
       });
 
-      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 12 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countWhereMock = jest
+        .fn()
+        .mockResolvedValue([{ messageCount: 12 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
       const result = await capsulesRepository.getCapsule({
@@ -345,6 +350,46 @@ describe("CapsulesRepository", () => {
     });
   });
 
+  describe("getMessageCountBySlug", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.getMessageCountBySlug({ slug: "missing-capsule" }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: PAST_DATE,
+      });
+
+      await expect(
+        capsulesRepository.getMessageCountBySlug({ slug: "expired-capsule" }),
+      ).rejects.toBeInstanceOf(CapsuleExpiredException);
+    });
+
+    it("유효한 캡슐이면 최신 messageCount를 반환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: FUTURE_DATE,
+      });
+
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 7 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      await expect(
+        capsulesRepository.getMessageCountBySlug({ slug: "opened-capsule" }),
+      ).resolves.toEqual({
+        messageCount: 7,
+      });
+    });
+  });
+
   describe("createMessage", () => {
     it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue(null);
@@ -378,8 +423,12 @@ describe("CapsulesRepository", () => {
         id: "01TESTCAPSULEID123456789012",
         expiresAt: FUTURE_DATE,
       });
-      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 300 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countWhereMock = jest
+        .fn()
+        .mockResolvedValue([{ messageCount: 300 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
       await expect(
@@ -397,7 +446,9 @@ describe("CapsulesRepository", () => {
         expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 1 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
       const messageReturningMock = jest.fn().mockResolvedValue([
@@ -411,10 +462,14 @@ describe("CapsulesRepository", () => {
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
-      const txInsertMock = jest.fn().mockReturnValue({ values: messageValuesMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
 
       const updateWhereMock = jest.fn().mockResolvedValue(undefined);
-      const updateSetMock = jest.fn().mockReturnValue({ where: updateWhereMock });
+      const updateSetMock = jest
+        .fn()
+        .mockReturnValue({ where: updateWhereMock });
       const txUpdateMock = jest.fn().mockReturnValue({ set: updateSetMock });
       db.transaction.mockImplementation(async (callback) =>
         callback({
@@ -452,14 +507,20 @@ describe("CapsulesRepository", () => {
         expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
-      const messageReturningMock = jest.fn().mockRejectedValue({ code: "23505" });
+      const messageReturningMock = jest
+        .fn()
+        .mockRejectedValue({ code: "23505" });
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
-      const txInsertMock = jest.fn().mockReturnValue({ values: messageValuesMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
       db.transaction.mockImplementation(async (callback) =>
         callback({
           insert: txInsertMock,

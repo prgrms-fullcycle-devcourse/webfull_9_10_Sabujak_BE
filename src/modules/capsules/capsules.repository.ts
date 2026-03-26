@@ -274,6 +274,33 @@ export class CapsulesRepository {
     };
   }
 
+  async getMessageCountBySlug(input: GetCapsuleInputDto) {
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        id: true,
+        expiresAt: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    if (capsule.expiresAt.getTime() <= Date.now()) {
+      throw new CapsuleExpiredException();
+    }
+
+    const [{ messageCount }] = await db
+      .select({ messageCount: count() })
+      .from(messages)
+      .where(eq(messages.capsuleId, capsule.id));
+
+    return {
+      messageCount,
+    };
+  }
+
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
     void input;
     return buildVerifyPasswordMock();

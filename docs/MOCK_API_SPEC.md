@@ -25,6 +25,7 @@
 - 공개 후 응답의 `messages` 배열은 현재 5개 고정입니다.
 - 비밀번호 확인 API는 현재 어떤 값이 와도 항상 성공합니다.
 - 슬러그 예약 API도 현재 어떤 값이 와도 항상 성공합니다.
+- `GET /capsules/{slug}/message-count/stream` 는 실제 서버 구현 기준 endpoint이며, 현재 mock 응답은 아직 지원하지 않습니다.
 
 ### 1.3 기본 mock 값
 
@@ -40,15 +41,16 @@
 
 ## 2. 엔드포인트 목록
 
-| 도메인  | 기능                 | 메서드   | URI                           |
-| ------- | -------------------- | -------- | ----------------------------- |
-| Capsule | 슬러그 예약 생성     | `POST`   | `/capsules/slug-reservations` |
-| Capsule | 캡슐 생성            | `POST`   | `/capsules`                   |
-| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slug}`            |
-| Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slug}/verify`     |
-| Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slug}`            |
-| Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slug}`            |
-| Message | 메시지 작성          | `POST`   | `/capsules/{slug}/messages`   |
+| 도메인  | 기능                                 | 메서드   | URI                                     |
+| ------- | ------------------------------------ | -------- | --------------------------------------- |
+| Capsule | 슬러그 예약 생성                     | `POST`   | `/capsules/slug-reservations`           |
+| Capsule | 캡슐 생성                            | `POST`   | `/capsules`                             |
+| Capsule | 캡슐 조회                            | `GET`    | `/capsules/{slug}`                      |
+| Capsule | messageCount SSE 구독 (planned only) | `GET`    | `/capsules/{slug}/message-count/stream` |
+| Capsule | 관리자 비밀번호 확인                 | `POST`   | `/capsules/{slug}/verify`               |
+| Capsule | 캡슐 수정                            | `PATCH`  | `/capsules/{slug}`                      |
+| Capsule | 캡슐 삭제                            | `DELETE` | `/capsules/{slug}`                      |
+| Message | 메시지 작성                          | `POST`   | `/capsules/{slug}/messages`             |
 
 ## 3. 엔드포인트 상세
 

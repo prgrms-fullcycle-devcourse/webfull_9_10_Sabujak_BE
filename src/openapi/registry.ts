@@ -13,6 +13,7 @@ import {
   createMessageResponseSchema,
   createSlugReservationBodySchema,
   deleteCapsuleBodySchema,
+  messageCountStreamResponseSchema,
   slugReservationResponseSchema,
   updateCapsuleBodySchema,
   updateCapsuleResponseSchema,
@@ -148,7 +149,8 @@ registry.registerPath({
   path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 조회❤️",
-  description: "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
+  description:
+    "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
   request: {
     params: capsuleSlugParamsSchema,
   },
@@ -196,6 +198,31 @@ registry.registerPath({
               },
             },
           },
+        },
+      },
+    },
+    404: buildErrorResponse("CAPSULE_NOT_FOUND"),
+    410: buildErrorResponse("CAPSULE_EXPIRED"),
+    500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/capsules/{slug}/message-count/stream",
+  tags: ["Capsule"],
+  summary: "messageCount SSE 구독",
+  description:
+    "특정 캡슐의 최신 messageCount를 SSE로 구독합니다. 연결 직후 현재 count를 1회 전송하고 이후 변경 시마다 같은 이벤트를 push합니다.",
+  request: {
+    params: capsuleSlugParamsSchema,
+  },
+  responses: {
+    200: {
+      description: "SSE 연결 성공",
+      content: {
+        "text/event-stream": {
+          schema: messageCountStreamResponseSchema,
         },
       },
     },
@@ -332,10 +359,7 @@ registry.registerPath({
     },
     400: buildErrorResponse("INVALID_INPUT"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
-    409: buildErrorResponses(
-      "DUPLICATE_NICKNAME",
-      "MESSAGE_LIMIT_EXCEEDED",
-    ),
+    409: buildErrorResponses("DUPLICATE_NICKNAME", "MESSAGE_LIMIT_EXCEEDED"),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
