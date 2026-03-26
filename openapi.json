@@ -5,11 +5,7 @@
     "version": "1.0.0",
     "description": "사부작 백엔드 API 문서입니다."
   },
-  "servers": [
-    {
-      "url": "/"
-    }
-  ],
+  "servers": [{ "url": "/" }],
   "components": {
     "schemas": {
       "SlugReservationResponse": {
@@ -58,24 +54,17 @@
                   "INTERNAL_SERVER_ERROR"
                 ]
               },
-              "message": {
-                "type": "string"
-              },
+              "message": { "type": "string" },
               "details": {
                 "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ErrorDetail"
-                },
+                "items": { "$ref": "#/components/schemas/ErrorDetail" },
                 "description": "입력값 검증 실패 시 필드별 상세 오류 목록",
                 "example": [
                   {
                     "field": "title",
                     "message": "최소 1자 이상이어야 합니다."
                   },
-                  {
-                    "field": "password",
-                    "message": "4자리 숫자여야 합니다."
-                  }
+                  { "field": "password", "message": "4자리 숫자여야 합니다." }
                 ]
               }
             },
@@ -117,10 +106,7 @@
       "CreateCapsuleResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-          },
+          "id": { "type": "string", "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV" },
           "slug": {
             "type": "string",
             "minLength": 1,
@@ -248,10 +234,7 @@
                 "enum": [false],
                 "example": false
               },
-              "messageCount": {
-                "type": "integer",
-                "example": 12
-              }
+              "messageCount": { "type": "integer", "example": 12 }
             },
             "required": [
               "id",
@@ -306,20 +289,11 @@
                 "format": "date-time",
                 "example": "2025-06-01T10:00:00.000Z"
               },
-              "isOpen": {
-                "type": "boolean",
-                "enum": [true],
-                "example": true
-              },
-              "messageCount": {
-                "type": "integer",
-                "example": 5
-              },
+              "isOpen": { "type": "boolean", "enum": [true], "example": true },
+              "messageCount": { "type": "integer", "example": 5 },
               "messages": {
                 "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/CapsuleMessage"
-                },
+                "items": { "$ref": "#/components/schemas/CapsuleMessage" },
                 "description": "공개 후 내려오는 메시지 목록"
               }
             },
@@ -341,14 +315,8 @@
       "CapsuleMessage": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 1
-          },
-          "nickname": {
-            "type": "string",
-            "example": "익명의 멘토"
-          },
+          "id": { "type": "integer", "example": 1 },
+          "nickname": { "type": "string", "example": "익명의 멘토" },
           "content": {
             "type": "string",
             "example": "졸업을 진심으로 축하합니다!"
@@ -363,22 +331,12 @@
       },
       "MessageCountStreamResponse": {
         "type": "object",
-        "properties": {
-          "messageCount": {
-            "type": "integer",
-            "example": 12
-          }
-        },
+        "properties": { "messageCount": { "type": "integer", "example": 12 } },
         "required": ["messageCount"]
       },
       "VerifyCapsulePasswordResponse": {
         "type": "object",
-        "properties": {
-          "verified": {
-            "type": "boolean",
-            "example": true
-          }
-        },
+        "properties": { "verified": { "type": "boolean", "example": true } },
         "required": ["verified"]
       },
       "VerifyCapsulePasswordRequest": {
@@ -395,10 +353,7 @@
       "UpdateCapsuleResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-          },
+          "id": { "type": "string", "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV" },
           "slug": {
             "type": "string",
             "minLength": 1,
@@ -481,10 +436,7 @@
       "CreateMessageResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "example": 13
-          },
+          "id": { "type": "integer", "example": 13 },
           "nickname": {
             "type": "string",
             "minLength": 1,
@@ -568,9 +520,7 @@
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -588,9 +538,7 @@
             "description": "SLUG_ALREADY_IN_USE",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "slug_already_in_use": {
                     "value": {
@@ -608,9 +556,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -636,9 +582,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCapsuleRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateCapsuleRequest" }
             }
           }
         },
@@ -657,9 +601,7 @@
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -677,9 +619,7 @@
             "description": "SLUG_RESERVATION_MISMATCH | SLUG_ALREADY_IN_USE",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "slug_reservation_mismatch": {
                     "value": {
@@ -705,9 +645,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -798,9 +736,7 @@
             "description": "CAPSULE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -818,9 +754,7 @@
             "description": "CAPSULE_EXPIRED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_expired": {
                     "value": {
@@ -838,9 +772,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -880,9 +812,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCapsuleRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateCapsuleRequest" }
             }
           }
         },
@@ -901,9 +831,7 @@
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -921,9 +849,7 @@
             "description": "FORBIDDEN_PASSWORD",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "forbidden_password": {
                     "value": {
@@ -941,9 +867,7 @@
             "description": "CAPSULE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -961,9 +885,7 @@
             "description": "CAPSULE_ALREADY_OPENED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_already_opened": {
                     "value": {
@@ -981,9 +903,7 @@
             "description": "CAPSULE_EXPIRED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_expired": {
                     "value": {
@@ -1001,9 +921,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -1043,23 +961,17 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteCapsuleRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/DeleteCapsuleRequest" }
             }
           }
         },
         "responses": {
-          "204": {
-            "description": "캡슐 삭제 성공"
-          },
+          "204": { "description": "캡슐 삭제 성공" },
           "400": {
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -1077,9 +989,7 @@
             "description": "FORBIDDEN_PASSWORD",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "forbidden_password": {
                     "value": {
@@ -1097,9 +1007,7 @@
             "description": "CAPSULE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -1117,9 +1025,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -1172,9 +1078,7 @@
             "description": "CAPSULE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -1192,9 +1096,7 @@
             "description": "CAPSULE_EXPIRED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_expired": {
                     "value": {
@@ -1212,9 +1114,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -1277,9 +1177,7 @@
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -1297,9 +1195,7 @@
             "description": "FORBIDDEN_PASSWORD",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "forbidden_password": {
                     "value": {
@@ -1317,9 +1213,7 @@
             "description": "CAPSULE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -1337,9 +1231,7 @@
             "description": "TOO_MANY_REQUESTS",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "too_many_requests": {
                     "value": {
@@ -1357,9 +1249,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -1401,9 +1291,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMessageRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateMessageRequest" }
             }
           }
         },
@@ -1422,9 +1310,7 @@
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -1442,9 +1328,7 @@
             "description": "CAPSULE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -1462,9 +1346,7 @@
             "description": "DUPLICATE_NICKNAME | MESSAGE_LIMIT_EXCEEDED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "duplicate_nickname": {
                     "value": {
@@ -1490,9 +1372,7 @@
             "description": "CAPSULE_EXPIRED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_expired": {
                     "value": {
@@ -1510,9 +1390,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
@@ -1566,23 +1444,17 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteMessageRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/DeleteMessageRequest" }
             }
           }
         },
         "responses": {
-          "204": {
-            "description": "메시지 삭제 성공"
-          },
+          "204": { "description": "메시지 삭제 성공" },
           "400": {
             "description": "INVALID_INPUT",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "invalid_input": {
                     "value": {
@@ -1600,9 +1472,7 @@
             "description": "FORBIDDEN_PASSWORD",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "forbidden_password": {
                     "value": {
@@ -1620,9 +1490,7 @@
             "description": "CAPSULE_NOT_FOUND | MESSAGE_NOT_FOUND",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_not_found": {
                     "value": {
@@ -1648,9 +1516,7 @@
             "description": "CAPSULE_EXPIRED",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "capsule_expired": {
                     "value": {
@@ -1668,9 +1534,7 @@
             "description": "INTERNAL_SERVER_ERROR",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "examples": {
                   "internal_server_error": {
                     "value": {
