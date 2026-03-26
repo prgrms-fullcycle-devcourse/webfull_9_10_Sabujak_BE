@@ -33,11 +33,7 @@
             "example": "2026-03-18T02:10:21.000Z"
           }
         },
-        "required": [
-          "slug",
-          "reservationToken",
-          "reservedUntil"
-        ]
+        "required": ["slug", "reservationToken", "reservedUntil"]
       },
       "ErrorResponse": {
         "type": "object",
@@ -51,6 +47,7 @@
                   "INVALID_INPUT",
                   "FORBIDDEN_PASSWORD",
                   "CAPSULE_NOT_FOUND",
+                  "MESSAGE_NOT_FOUND",
                   "SLUG_ALREADY_IN_USE",
                   "SLUG_RESERVATION_MISMATCH",
                   "DUPLICATE_NICKNAME",
@@ -82,15 +79,10 @@
                 ]
               }
             },
-            "required": [
-              "code",
-              "message"
-            ]
+            "required": ["code", "message"]
           }
         },
-        "required": [
-          "error"
-        ]
+        "required": ["error"]
       },
       "ErrorDetail": {
         "type": "object",
@@ -106,10 +98,7 @@
             "example": "최소 1자 이상이어야 합니다."
           }
         },
-        "required": [
-          "field",
-          "message"
-        ]
+        "required": ["field", "message"]
       },
       "CreateSlugReservationRequest": {
         "type": "object",
@@ -123,9 +112,7 @@
             "example": "our-graduation-2025"
           }
         },
-        "required": [
-          "slug"
-        ]
+        "required": ["slug"]
       },
       "CreateCapsuleResponse": {
         "type": "object",
@@ -211,13 +198,7 @@
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
           }
         },
-        "required": [
-          "slug",
-          "title",
-          "password",
-          "openAt",
-          "reservationToken"
-        ]
+        "required": ["slug", "title", "password", "openAt", "reservationToken"]
       },
       "CapsuleDetailResponse": {
         "oneOf": [
@@ -264,9 +245,7 @@
               },
               "isOpen": {
                 "type": "boolean",
-                "enum": [
-                  false
-                ],
+                "enum": [false],
                 "example": false
               },
               "messageCount": {
@@ -329,9 +308,7 @@
               },
               "isOpen": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ],
+                "enum": [true],
                 "example": true
               },
               "messageCount": {
@@ -382,12 +359,17 @@
             "example": "2025-12-24T15:30:00.000Z"
           }
         },
-        "required": [
-          "id",
-          "nickname",
-          "content",
-          "createdAt"
-        ]
+        "required": ["id", "nickname", "content", "createdAt"]
+      },
+      "MessageCountStreamResponse": {
+        "type": "object",
+        "properties": {
+          "messageCount": {
+            "type": "integer",
+            "example": 12
+          }
+        },
+        "required": ["messageCount"]
       },
       "VerifyCapsulePasswordResponse": {
         "type": "object",
@@ -397,9 +379,7 @@
             "example": true
           }
         },
-        "required": [
-          "verified"
-        ]
+        "required": ["verified"]
       },
       "VerifyCapsulePasswordRequest": {
         "type": "object",
@@ -410,9 +390,7 @@
             "example": "1234"
           }
         },
-        "required": [
-          "password"
-        ]
+        "required": ["password"]
       },
       "UpdateCapsuleResponse": {
         "type": "object",
@@ -487,11 +465,7 @@
             "description": "현재 시각 이후의 공개 예정 시각(ISO 8601)"
           }
         },
-        "required": [
-          "password",
-          "title",
-          "openAt"
-        ]
+        "required": ["password", "title", "openAt"]
       },
       "DeleteCapsuleRequest": {
         "type": "object",
@@ -502,9 +476,7 @@
             "example": "1234"
           }
         },
-        "required": [
-          "password"
-        ]
+        "required": ["password"]
       },
       "CreateMessageResponse": {
         "type": "object",
@@ -531,12 +503,7 @@
             "example": "2025-03-18T02:05:21.000Z"
           }
         },
-        "required": [
-          "id",
-          "nickname",
-          "content",
-          "createdAt"
-        ]
+        "required": ["id", "nickname", "content", "createdAt"]
       },
       "CreateMessageRequest": {
         "type": "object",
@@ -554,10 +521,18 @@
             "example": "앞으로도 좋은 일만 가득하길 바랄게!"
           }
         },
-        "required": [
-          "nickname",
-          "content"
-        ]
+        "required": ["nickname", "content"]
+      },
+      "DeleteMessageRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "pattern": "^\\d{4}$",
+            "example": "1234"
+          }
+        },
+        "required": ["password"]
       }
     },
     "parameters": {}
@@ -565,9 +540,7 @@
   "paths": {
     "/capsules/slug-reservations": {
       "post": {
-        "tags": [
-          "Capsule"
-        ],
+        "tags": ["Capsule"],
         "summary": "슬러그 예약 생성❤️",
         "description": "중복 확인 후 슬러그 예약 토큰을 발급합니다.",
         "requestBody": {
@@ -656,9 +629,7 @@
     },
     "/capsules": {
       "post": {
-        "tags": [
-          "Capsule"
-        ],
+        "tags": ["Capsule"],
         "summary": "캡슐 생성❤️",
         "description": "예약 토큰을 검증한 뒤 신규 타임캡슐을 생성하고, openAt 기준으로 expiresAt을 계산합니다.",
         "requestBody": {
@@ -755,9 +726,7 @@
     },
     "/capsules/{slug}": {
       "get": {
-        "tags": [
-          "Capsule"
-        ],
+        "tags": ["Capsule"],
         "summary": "캡슐 조회❤️",
         "description": "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
         "parameters": [
@@ -888,9 +857,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Capsule"
-        ],
+        "tags": ["Capsule"],
         "summary": "캡슐 수정❤️",
         "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다.",
         "parameters": [
@@ -1053,9 +1020,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Capsule"
-        ],
+        "tags": ["Capsule"],
         "summary": "캡슐 삭제❤️",
         "description": "관리자 비밀번호 검증 후 캡슐을 삭제합니다.",
         "parameters": [
@@ -1171,11 +1136,104 @@
         }
       }
     },
+    "/capsules/{slug}/message-count/stream": {
+      "get": {
+        "tags": ["Capsule"],
+        "summary": "messageCount SSE 구독",
+        "description": "특정 캡슐의 최신 messageCount를 SSE로 구독합니다. 연결 직후 현재 count를 1회 전송하고 이후 변경 시마다 같은 이벤트를 push합니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "조회/수정/삭제 대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE 연결 성공",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageCountStreamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "CAPSULE_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_expired": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_EXPIRED",
+                        "message": "만료된 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capsules/{slug}/verify": {
       "post": {
-        "tags": [
-          "Capsule"
-        ],
+        "tags": ["Capsule"],
         "summary": "관리자 비밀번호 확인",
         "description": "캡슐 관리자 비밀번호를 검증합니다.",
         "parameters": [
@@ -1320,9 +1378,7 @@
     },
     "/capsules/{slug}/messages": {
       "post": {
-        "tags": [
-          "Message"
-        ],
+        "tags": ["Message"],
         "summary": "메시지 작성❤️",
         "description": "특정 캡슐에 익명 메시지를 작성하고, 성공 시 캡슐의 최신 활동 시각을 함께 갱신합니다.",
         "parameters": [
@@ -1423,6 +1479,164 @@
                       "error": {
                         "code": "MESSAGE_LIMIT_EXCEEDED",
                         "message": "메시지 작성 가능 개수를 초과했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "CAPSULE_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_expired": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_EXPIRED",
+                        "message": "만료된 캡슐입니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internal_server_error": {
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL_SERVER_ERROR",
+                        "message": "서버 내부 오류가 발생했습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capsules/{slug}/messages/{messageId}": {
+      "delete": {
+        "tags": ["Message"],
+        "summary": "메시지 삭제",
+        "description": "관리자 비밀번호 검증 후 특정 캡슐의 메시지를 Hard Delete 합니다.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "description": "사용자 노출용 slug 식별자",
+              "example": "our-graduation-2025"
+            },
+            "required": true,
+            "description": "대상 캡슐의 slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "example": 13
+            },
+            "required": true,
+            "name": "messageId",
+            "in": "path",
+            "description": "삭제할 메시지의 id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "메시지 삭제 성공"
+          },
+          "400": {
+            "description": "INVALID_INPUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_input": {
+                    "value": {
+                      "error": {
+                        "code": "INVALID_INPUT",
+                        "message": "요청 값을 확인해 주세요."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN_PASSWORD",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden_password": {
+                    "value": {
+                      "error": {
+                        "code": "FORBIDDEN_PASSWORD",
+                        "message": "비밀번호가 일치하지 않습니다."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CAPSULE_NOT_FOUND | MESSAGE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "capsule_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_NOT_FOUND",
+                        "message": "존재하지 않는 캡슐입니다."
+                      }
+                    }
+                  },
+                  "message_not_found": {
+                    "value": {
+                      "error": {
+                        "code": "MESSAGE_NOT_FOUND",
+                        "message": "존재하지 않는 메시지입니다."
                       }
                     }
                   }
