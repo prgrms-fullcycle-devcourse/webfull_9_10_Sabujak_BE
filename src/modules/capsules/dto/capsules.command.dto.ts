@@ -1,13 +1,18 @@
 import { z } from "../../../openapi/zod-extend";
 import { createCapsuleBodySchema } from "./create-capsule.dto";
 import { createMessageBodySchema } from "./create-message.dto";
-import { capsuleSlugParamsSchema } from "./shared.dto";
+import {
+  capsuleMessageParamsSchema,
+  capsuleSlugParamsSchema,
+} from "./shared.dto";
 import { createSlugReservationBodySchema } from "./slug-reservation.dto";
 import { updateCapsuleBodySchema } from "./update-capsule.dto";
 import { verifyPasswordBodySchema } from "./verify-capsule-password.dto";
 import { deleteCapsuleBodySchema } from "./delete-capsule.dto";
+import { deleteMessageBodySchema } from "./delete-message.dto";
 
 type CapsuleSlugParamsDto = z.infer<typeof capsuleSlugParamsSchema>;
+type CapsuleMessageParamsDto = z.infer<typeof capsuleMessageParamsSchema>;
 
 export type CreateSlugReservationInputDto = z.infer<
   typeof createSlugReservationBodySchema
@@ -28,3 +33,6 @@ export type DeleteCapsuleInputDto = CapsuleSlugParamsDto &
 
 export type CreateMessageInputDto = CapsuleSlugParamsDto &
   z.infer<typeof createMessageBodySchema>;
+
+export type DeleteMessageInputDto = CapsuleMessageParamsDto &
+  z.infer<typeof deleteMessageBodySchema>;

@@ -40,15 +40,17 @@
 
 ## 2. 엔드포인트 목록
 
-| 도메인  | 기능                 | 메서드   | URI                           |
-| ------- | -------------------- | -------- | ----------------------------- |
-| Capsule | 슬러그 예약 생성     | `POST`   | `/capsules/slug-reservations` |
-| Capsule | 캡슐 생성            | `POST`   | `/capsules`                   |
-| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slug}`            |
-| Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slug}/verify`     |
-| Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slug}`            |
-| Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slug}`            |
-| Message | 메시지 작성          | `POST`   | `/capsules/{slug}/messages`   |
+| 도메인  | 기능                  | 메서드   | URI                                     |
+| ------- | --------------------- | -------- | --------------------------------------- |
+| Capsule | 슬러그 예약 생성      | `POST`   | `/capsules/slug-reservations`           |
+| Capsule | 캡슐 생성             | `POST`   | `/capsules`                             |
+| Capsule | 캡슐 조회             | `GET`    | `/capsules/{slug}`                      |
+| Capsule | messageCount SSE 구독 | `GET`    | `/capsules/{slug}/message-count/stream` |
+| Capsule | 관리자 비밀번호 확인  | `POST`   | `/capsules/{slug}/verify`               |
+| Capsule | 캡슐 수정             | `PATCH`  | `/capsules/{slug}`                      |
+| Capsule | 캡슐 삭제             | `DELETE` | `/capsules/{slug}`                      |
+| Message | 메시지 작성           | `POST`   | `/capsules/{slug}/messages`             |
+| Message | 메시지 삭제           | `DELETE` | `/capsules/{slug}/messages/{messageId}` |
 
 ## 3. 엔드포인트 상세
 

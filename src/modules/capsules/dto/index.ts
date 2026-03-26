@@ -7,3 +7,5 @@ export * from "./verify-capsule-password.dto";
 export * from "./update-capsule.dto";
 export * from "./delete-capsule.dto";
 export * from "./create-message.dto";
+export * from "./delete-message.dto";
+export * from "./message-count-stream.dto";

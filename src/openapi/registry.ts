@@ -5,6 +5,7 @@ import {
 import { errorResponseSchema } from "../common/dto/error-response.dto";
 import { capsuleMockExamples } from "../mocks/capsule.mock";
 import {
+  capsuleMessageParamsSchema,
   capsuleDetailResponseSchema,
   capsuleSlugParamsSchema,
   createCapsuleBodySchema,
@@ -13,6 +14,8 @@ import {
   createMessageResponseSchema,
   createSlugReservationBodySchema,
   deleteCapsuleBodySchema,
+  deleteMessageBodySchema,
+  messageCountStreamResponseSchema,
   slugReservationResponseSchema,
   updateCapsuleBodySchema,
   updateCapsuleResponseSchema,
@@ -26,6 +29,7 @@ const errorMessages = {
   INVALID_INPUT: "요청 값을 확인해 주세요.",
   FORBIDDEN_PASSWORD: "비밀번호가 일치하지 않습니다.",
   CAPSULE_NOT_FOUND: "존재하지 않는 캡슐입니다.",
+  MESSAGE_NOT_FOUND: "존재하지 않는 메시지입니다.",
   SLUG_ALREADY_IN_USE: "이미 사용 중인 slug 입니다.",
   SLUG_RESERVATION_MISMATCH: "slug 예약 토큰 검증에 실패했습니다.",
   DUPLICATE_NICKNAME: "중복된 닉네임입니다.",
@@ -148,7 +152,8 @@ registry.registerPath({
   path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 조회❤️",
-  description: "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
+  description:
+    "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
   request: {
     params: capsuleSlugParamsSchema,
   },
@@ -196,6 +201,31 @@ registry.registerPath({
               },
             },
           },
+        },
+      },
+    },
+    404: buildErrorResponse("CAPSULE_NOT_FOUND"),
+    410: buildErrorResponse("CAPSULE_EXPIRED"),
+    500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/capsules/{slug}/message-count/stream",
+  tags: ["Capsule"],
+  summary: "messageCount SSE 구독",
+  description:
+    "특정 캡슐의 최신 messageCount를 SSE로 구독합니다. 연결 직후 현재 count를 1회 전송하고 이후 변경 시마다 같은 이벤트를 push합니다.",
+  request: {
+    params: capsuleSlugParamsSchema,
+  },
+  responses: {
+    200: {
+      description: "SSE 연결 성공",
+      content: {
+        "text/event-stream": {
+          schema: messageCountStreamResponseSchema,
         },
       },
     },
@@ -332,10 +362,37 @@ registry.registerPath({
     },
     400: buildErrorResponse("INVALID_INPUT"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
-    409: buildErrorResponses(
-      "DUPLICATE_NICKNAME",
-      "MESSAGE_LIMIT_EXCEEDED",
-    ),
+    409: buildErrorResponses("DUPLICATE_NICKNAME", "MESSAGE_LIMIT_EXCEEDED"),
+    410: buildErrorResponse("CAPSULE_EXPIRED"),
+    500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/capsules/{slug}/messages/{messageId}",
+  tags: ["Message"],
+  summary: "메시지 삭제",
+  description:
+    "관리자 비밀번호 검증 후 특정 캡슐의 메시지를 Hard Delete 합니다.",
+  request: {
+    params: capsuleMessageParamsSchema,
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: deleteMessageBodySchema,
+        },
+      },
+    },
+  },
+  responses: {
+    204: {
+      description: "메시지 삭제 성공",
+    },
+    400: buildErrorResponse("INVALID_INPUT"),
+    403: buildErrorResponse("FORBIDDEN_PASSWORD"),
+    404: buildErrorResponses("CAPSULE_NOT_FOUND", "MESSAGE_NOT_FOUND"),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },

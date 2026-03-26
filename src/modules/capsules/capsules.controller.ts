@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
+import { capsuleMessageCountPublisher } from "./capsule-message-count.publisher";
 import { capsulesService } from "./capsules.service";
 import {
+  capsuleMessageParamsSchema,
   capsuleSlugParamsSchema,
   capsuleDetailResponseSchema,
   createCapsuleBodySchema,
@@ -9,6 +11,7 @@ import {
   createMessageResponseSchema,
   createSlugReservationBodySchema,
   deleteCapsuleBodySchema,
+  deleteMessageBodySchema,
   slugReservationResponseSchema,
   updateCapsuleBodySchema,
   updateCapsuleResponseSchema,
@@ -40,21 +43,34 @@ export const getCapsule = async (req: Request, res: Response) => {
   res.status(200).json(capsuleDetailResponseSchema.parse(payload));
 };
 
+// messageCount 전용 SSE 구독 연결
+export const streamCapsuleMessageCount = async (
+  req: Request,
+  res: Response,
+) => {
+  const params = capsuleSlugParamsSchema.parse(req.params);
+  const { messageCount } = await capsulesService.getMessageCount(params);
+
+  capsuleMessageCountPublisher.subscribe({
+    slug: params.slug,
+    response: res,
+    initialMessageCount: messageCount,
+  });
+};
+
 // 캡슐 수정 및 삭제 진입 전 관리자 비밀번호 검증
 export const verifyCapsulePassword = async (req: Request, res: Response) => {
   const params = capsuleSlugParamsSchema.parse(req.params);
   const body = verifyPasswordBodySchema.parse(req.body);
 
-  res
-    .status(200)
-    .json(
-      verifyPasswordResponseSchema.parse(
-        await capsulesService.verifyCapsulePassword({
-          ...params,
-          ...body,
-        }),
-      ),
-    );
+  res.status(200).json(
+    verifyPasswordResponseSchema.parse(
+      await capsulesService.verifyCapsulePassword({
+        ...params,
+        ...body,
+      }),
+    ),
+  );
 };
 
 // 관리자 비밀번호 검증 이후 캡슐 제목 및 공개 시각 수정
@@ -90,4 +106,17 @@ export const createMessage = async (req: Request, res: Response) => {
     ...body,
   });
   res.status(201).json(createMessageResponseSchema.parse(payload));
+};
+
+// 관리자 비밀번호 검증 이후 특정 메시지 Hard Delete
+export const deleteMessage = async (req: Request, res: Response) => {
+  const params = capsuleMessageParamsSchema.parse(req.params);
+  const body = deleteMessageBodySchema.parse(req.body);
+
+  await capsulesService.deleteMessage({
+    ...params,
+    ...body,
+  });
+
+  res.status(204).send();
 };
