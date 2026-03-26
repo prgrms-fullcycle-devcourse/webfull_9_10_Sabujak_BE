@@ -6,7 +6,6 @@ import {
   DuplicateNicknameException,
   ForbiddenPasswordException,
   InvalidInputException,
-  MessageNotFoundException,
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
@@ -720,96 +719,6 @@ describe("CapsulesRepository", () => {
 
       expect(db.delete).toHaveBeenCalledTimes(1);
       expect(deleteWhereMock).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("deleteMessage", () => {
-    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue(null);
-
-      await expect(
-        capsulesRepository.deleteMessage({
-          slug: "missing-capsule",
-          messageId: 13,
-          password: "1234",
-        }),
-      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
-    });
-
-    it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        expiresAt: FUTURE_DATE,
-      });
-
-      await expect(
-        capsulesRepository.deleteMessage({
-          slug: "opened-capsule",
-          messageId: 13,
-          password: "9999",
-        }),
-      ).rejects.toBeInstanceOf(ForbiddenPasswordException);
-    });
-
-    it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        expiresAt: PAST_DATE,
-      });
-
-      await expect(
-        capsulesRepository.deleteMessage({
-          slug: "opened-capsule",
-          messageId: 13,
-          password: "1234",
-        }),
-      ).rejects.toBeInstanceOf(CapsuleExpiredException);
-    });
-
-    it("삭제 대상 메시지가 없으면 MessageNotFoundException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        expiresAt: FUTURE_DATE,
-      });
-
-      const returningMock = jest.fn().mockResolvedValue([]);
-      const whereMock = jest.fn().mockReturnValue({ returning: returningMock });
-      db.delete.mockReturnValue({ where: whereMock });
-
-      await expect(
-        capsulesRepository.deleteMessage({
-          slug: "opened-capsule",
-          messageId: 13,
-          password: "1234",
-        }),
-      ).rejects.toBeInstanceOf(MessageNotFoundException);
-    });
-
-    it("검증이 끝나면 해당 capsule의 message를 Hard Delete 한다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        expiresAt: FUTURE_DATE,
-      });
-
-      const returningMock = jest.fn().mockResolvedValue([{ id: 13 }]);
-      const whereMock = jest.fn().mockReturnValue({ returning: returningMock });
-      db.delete.mockReturnValue({ where: whereMock });
-
-      await expect(
-        capsulesRepository.deleteMessage({
-          slug: "opened-capsule",
-          messageId: 13,
-          password: "1234",
-        }),
-      ).resolves.toBeUndefined();
-
-      expect(db.delete).toHaveBeenCalledTimes(1);
-      expect(whereMock).toHaveBeenCalledTimes(1);
-      expect(returningMock).toHaveBeenCalledTimes(1);
     });
   });
 });

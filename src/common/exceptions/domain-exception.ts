@@ -2,7 +2,6 @@ export const errorCodes = [
   "INVALID_INPUT",
   "FORBIDDEN_PASSWORD",
   "CAPSULE_NOT_FOUND",
-  "MESSAGE_NOT_FOUND",
   "SLUG_ALREADY_IN_USE",
   "SLUG_RESERVATION_MISMATCH",
   "DUPLICATE_NICKNAME",
@@ -44,13 +43,6 @@ export class CapsuleNotFoundException extends DomainException {
   constructor(message = "존재하지 않는 캡슐입니다.") {
     super(404, "CAPSULE_NOT_FOUND", message);
     this.name = "CapsuleNotFoundException";
-  }
-}
-
-export class MessageNotFoundException extends DomainException {
-  constructor(message = "존재하지 않는 메시지입니다.") {
-    super(404, "MESSAGE_NOT_FOUND", message);
-    this.name = "MessageNotFoundException";
   }
 }
 

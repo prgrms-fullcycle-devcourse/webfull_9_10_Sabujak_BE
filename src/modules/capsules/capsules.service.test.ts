@@ -10,7 +10,6 @@ describe("CapsulesService", () => {
     updateCapsule: jest.fn(),
     deleteCapsule: jest.fn(),
     createMessage: jest.fn(),
-    deleteMessage: jest.fn(),
   };
 
   const publisher = {
@@ -66,29 +65,6 @@ describe("CapsulesService", () => {
 
     expect(repository.getMessageCountBySlug).not.toHaveBeenCalled();
     expect(publisher.publish).not.toHaveBeenCalled();
-  });
-
-  it("메시지 삭제 성공 후 최신 count를 재조회해 publish 한다", async () => {
-    repository.deleteMessage.mockResolvedValue(undefined);
-    repository.getMessageCountBySlug.mockResolvedValue({ messageCount: 2 });
-
-    await service.deleteMessage({
-      slug: "opened-capsule",
-      messageId: 13,
-      password: "1234",
-    });
-
-    expect(repository.deleteMessage).toHaveBeenCalledWith({
-      slug: "opened-capsule",
-      messageId: 13,
-      password: "1234",
-    });
-    expect(repository.getMessageCountBySlug).toHaveBeenCalledWith({
-      slug: "opened-capsule",
-    });
-    expect(publisher.publish).toHaveBeenCalledWith("opened-capsule", {
-      messageCount: 2,
-    });
   });
 
   it("publish 단계가 실패해도 메시지 생성 자체는 성공시킨다", async () => {

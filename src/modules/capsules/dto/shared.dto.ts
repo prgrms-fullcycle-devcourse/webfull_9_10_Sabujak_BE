@@ -70,29 +70,3 @@ export const capsuleSlugParamsSchema = z
     }),
   })
   .openapi("CapsuleSlugParams");
-
-export const capsuleMessageParamsSchema = z
-  .object({
-    slug: slugSchema.openapi({
-      param: {
-        name: "slug",
-        in: "path",
-        required: true,
-        description: "대상 캡슐의 slug",
-      },
-    }),
-    messageId: z.coerce
-      .number()
-      .int()
-      .positive()
-      .openapi({
-        param: {
-          name: "messageId",
-          in: "path",
-          required: true,
-          description: "삭제할 메시지의 id",
-        },
-        example: 13,
-      }),
-  })
-  .openapi("CapsuleMessageParams");

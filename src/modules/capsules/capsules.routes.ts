@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   createCapsule,
-  deleteMessage,
   createMessage,
   createSlugReservation,
   deleteCapsule,
@@ -21,6 +20,5 @@ router.post("/capsules/:slug/verify", verifyCapsulePassword);
 router.patch("/capsules/:slug", updateCapsule);
 router.delete("/capsules/:slug", deleteCapsule);
 router.post("/capsules/:slug/messages", createMessage);
-router.delete("/capsules/:slug/messages/:messageId", deleteMessage);
 
 export default router;

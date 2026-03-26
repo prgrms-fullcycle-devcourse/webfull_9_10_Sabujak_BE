@@ -8,7 +8,6 @@ import {
   CreateMessageInputDto,
   CreateSlugReservationInputDto,
   DeleteCapsuleInputDto,
-  DeleteMessageInputDto,
   GetCapsuleInputDto,
   UpdateCapsuleInputDto,
   VerifyCapsulePasswordInputDto,
@@ -51,21 +50,12 @@ export class CapsulesService {
   async createMessage(input: CreateMessageInputDto) {
     const createdMessage = await this.repository.createMessage(input);
 
-    await this.publishLatestMessageCountSafely(input.slug, "create");
+    await this.publishLatestMessageCountSafely(input.slug);
 
     return createdMessage;
   }
 
-  async deleteMessage(input: DeleteMessageInputDto) {
-    await this.repository.deleteMessage(input);
-
-    await this.publishLatestMessageCountSafely(input.slug, "delete");
-  }
-
-  private async publishLatestMessageCountSafely(
-    slug: string,
-    action: "create" | "delete",
-  ) {
+  private async publishLatestMessageCountSafely(slug: string) {
     try {
       const { messageCount } = await this.repository.getMessageCountBySlug({
         slug,
@@ -74,7 +64,7 @@ export class CapsulesService {
       this.messageCountPublisher.publish(slug, { messageCount });
     } catch (error) {
       console.error(
-        `[capsules] Failed to publish messageCount after message ${action}.`,
+        "[capsules] Failed to publish messageCount after message create.",
         error,
       );
     }

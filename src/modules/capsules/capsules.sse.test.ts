@@ -8,7 +8,6 @@ jest.mock("./capsules.service", () => ({
     updateCapsule: jest.fn(),
     deleteCapsule: jest.fn(),
     createMessage: jest.fn(),
-    deleteMessage: jest.fn(),
   },
 }));
 

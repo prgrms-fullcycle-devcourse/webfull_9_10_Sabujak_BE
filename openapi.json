@@ -43,7 +43,6 @@
                   "INVALID_INPUT",
                   "FORBIDDEN_PASSWORD",
                   "CAPSULE_NOT_FOUND",
-                  "MESSAGE_NOT_FOUND",
                   "SLUG_ALREADY_IN_USE",
                   "SLUG_RESERVATION_MISMATCH",
                   "DUPLICATE_NICKNAME",
@@ -474,17 +473,6 @@
           }
         },
         "required": ["nickname", "content"]
-      },
-      "DeleteMessageRequest": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string",
-            "pattern": "^\\d{4}$",
-            "example": "1234"
-          }
-        },
-        "required": ["password"]
       }
     },
     "parameters": {}
@@ -1361,150 +1349,6 @@
                       "error": {
                         "code": "MESSAGE_LIMIT_EXCEEDED",
                         "message": "메시지 작성 가능 개수를 초과했습니다."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "CAPSULE_EXPIRED",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "examples": {
-                  "capsule_expired": {
-                    "value": {
-                      "error": {
-                        "code": "CAPSULE_EXPIRED",
-                        "message": "만료된 캡슐입니다."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "INTERNAL_SERVER_ERROR",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "examples": {
-                  "internal_server_error": {
-                    "value": {
-                      "error": {
-                        "code": "INTERNAL_SERVER_ERROR",
-                        "message": "서버 내부 오류가 발생했습니다."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capsules/{slug}/messages/{messageId}": {
-      "delete": {
-        "tags": ["Message"],
-        "summary": "메시지 삭제",
-        "description": "관리자 비밀번호 검증 후 특정 캡슐의 메시지를 Hard Delete 합니다.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-              "description": "사용자 노출용 slug 식별자",
-              "example": "our-graduation-2025"
-            },
-            "required": true,
-            "description": "대상 캡슐의 slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true,
-              "example": 13
-            },
-            "required": true,
-            "name": "messageId",
-            "in": "path",
-            "description": "삭제할 메시지의 id"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/DeleteMessageRequest" }
-            }
-          }
-        },
-        "responses": {
-          "204": { "description": "메시지 삭제 성공" },
-          "400": {
-            "description": "INVALID_INPUT",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "examples": {
-                  "invalid_input": {
-                    "value": {
-                      "error": {
-                        "code": "INVALID_INPUT",
-                        "message": "요청 값을 확인해 주세요."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "FORBIDDEN_PASSWORD",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "examples": {
-                  "forbidden_password": {
-                    "value": {
-                      "error": {
-                        "code": "FORBIDDEN_PASSWORD",
-                        "message": "비밀번호가 일치하지 않습니다."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "CAPSULE_NOT_FOUND | MESSAGE_NOT_FOUND",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "examples": {
-                  "capsule_not_found": {
-                    "value": {
-                      "error": {
-                        "code": "CAPSULE_NOT_FOUND",
-                        "message": "존재하지 않는 캡슐입니다."
-                      }
-                    }
-                  },
-                  "message_not_found": {
-                    "value": {
-                      "error": {
-                        "code": "MESSAGE_NOT_FOUND",
-                        "message": "존재하지 않는 메시지입니다."
                       }
                     }
                   }

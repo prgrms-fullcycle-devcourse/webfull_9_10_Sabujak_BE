@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
@@ -15,7 +15,6 @@ import {
   DuplicateNicknameException,
   ForbiddenPasswordException,
   InvalidInputException,
-  MessageNotFoundException,
   MessageLimitExceededException,
   SlugAlreadyInUseException,
   SlugReservationMismatchException,
@@ -25,7 +24,6 @@ import {
   CreateMessageInputDto,
   CreateSlugReservationInputDto,
   DeleteCapsuleInputDto,
-  DeleteMessageInputDto,
   GetCapsuleInputDto,
   UpdateCapsuleInputDto,
   VerifyCapsulePasswordInputDto,
@@ -461,48 +459,6 @@ export class CapsulesRepository {
       }
 
       throw error;
-    }
-  }
-
-  async deleteMessage(input: DeleteMessageInputDto) {
-    const capsule = await db.query.capsules.findFirst({
-      columns: {
-        id: true,
-        passwordHash: true,
-        expiresAt: true,
-      },
-      where: eq(capsules.slug, input.slug),
-    });
-
-    if (!capsule) {
-      throw new CapsuleNotFoundException();
-    }
-
-    const isPasswordValid = await verifyPasswordHash(
-      input.password,
-      capsule.passwordHash,
-    );
-
-    if (!isPasswordValid) {
-      throw new ForbiddenPasswordException();
-    }
-
-    if (capsule.expiresAt.getTime() <= Date.now()) {
-      throw new CapsuleExpiredException();
-    }
-
-    const deletedMessages = await db
-      .delete(messages)
-      .where(
-        and(
-          eq(messages.capsuleId, capsule.id),
-          eq(messages.id, input.messageId),
-        ),
-      )
-      .returning({ id: messages.id });
-
-    if (deletedMessages.length === 0) {
-      throw new MessageNotFoundException();
     }
   }
 }

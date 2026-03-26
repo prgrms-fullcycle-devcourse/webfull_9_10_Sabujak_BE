@@ -55,18 +55,17 @@
 
 ## 2. 엔드포인트 목록
 
-| 도메인  | 기능                  | 메서드   | URI                                     | 설명                                |
-| ------- | --------------------- | -------- | --------------------------------------- | ----------------------------------- |
-| System  | 헬스체크              | `GET`    | `/health`                               | 서버 상태 확인                      |
-| Capsule | 슬러그 예약 생성      | `POST`   | `/capsules/slug-reservations`           | 중복 확인 후 5분 예약 토큰 발급     |
-| Capsule | 캡슐 생성             | `POST`   | `/capsules`                             | 신규 타임캡슐 생성                  |
-| Capsule | 캡슐 조회             | `GET`    | `/capsules/{slug}`                      | 공개 전/후 화면용 통합 조회         |
-| Capsule | messageCount SSE 구독 | `GET`    | `/capsules/{slug}/message-count/stream` | messageCount 실시간 구독            |
-| Capsule | 관리자 비밀번호 확인  | `POST`   | `/capsules/{slug}/verify`               | 수정/삭제 진입용 비밀번호 검증      |
-| Capsule | 캡슐 수정             | `PATCH`  | `/capsules/{slug}`                      | 비밀번호 검증 후 수정               |
-| Capsule | 캡슐 삭제             | `DELETE` | `/capsules/{slug}`                      | 비밀번호 검증 후 Hard Delete        |
-| Message | 메시지 작성❤️         | `POST`   | `/capsules/{slug}/messages`             | 익명 메시지 작성                    |
-| Message | 메시지 삭제           | `DELETE` | `/capsules/{slug}/messages/{messageId}` | 관리자 비밀번호 검증 후 Hard Delete |
+| 도메인  | 기능                  | 메서드   | URI                                     | 설명                            |
+| ------- | --------------------- | -------- | --------------------------------------- | ------------------------------- |
+| System  | 헬스체크              | `GET`    | `/health`                               | 서버 상태 확인                  |
+| Capsule | 슬러그 예약 생성      | `POST`   | `/capsules/slug-reservations`           | 중복 확인 후 5분 예약 토큰 발급 |
+| Capsule | 캡슐 생성             | `POST`   | `/capsules`                             | 신규 타임캡슐 생성              |
+| Capsule | 캡슐 조회             | `GET`    | `/capsules/{slug}`                      | 공개 전/후 화면용 통합 조회     |
+| Capsule | messageCount SSE 구독 | `GET`    | `/capsules/{slug}/message-count/stream` | messageCount 실시간 구독        |
+| Capsule | 관리자 비밀번호 확인  | `POST`   | `/capsules/{slug}/verify`               | 수정/삭제 진입용 비밀번호 검증  |
+| Capsule | 캡슐 수정             | `PATCH`  | `/capsules/{slug}`                      | 비밀번호 검증 후 수정           |
+| Capsule | 캡슐 삭제             | `DELETE` | `/capsules/{slug}`                      | 비밀번호 검증 후 Hard Delete    |
+| Message | 메시지 작성❤️         | `POST`   | `/capsules/{slug}/messages`             | 익명 메시지 작성                |
 
 ## 3. 엔드포인트 상세
 
@@ -223,7 +222,7 @@ Response `201 Created`
 - 기존 `GET /capsules/{slug}` 응답은 초기 화면 로딩용으로 그대로 유지합니다.
 - 클라이언트는 이후 이 endpoint에 SSE로 연결해 `messageCount` 숫자만 실시간 동기화합니다.
 - 연결 직후 현재 최신 `messageCount`를 1회 전송합니다.
-- 같은 capsule에서 메시지 생성 또는 삭제가 성공할 때마다 DB 기준 최신 count를 다시 계산해 push합니다.
+- 같은 capsule에서 메시지 생성이 성공할 때마다 DB 기준 최신 count를 다시 계산해 push합니다.
 - 서버는 heartbeat comment를 주기적으로 내려 연결 유지를 돕습니다.
 
 예시 이벤트
@@ -355,30 +354,7 @@ Response `201 Created`
 - 같은 캡슐 내에서 이미 사용 중인 `nickname`이면 `409 DUPLICATE_NICKNAME`
 - 중복 닉네임 오류 메시지는 `"중복된 닉네임입니다"`를 반환합니다.
 - 메시지 수가 `300`건에 도달하면 원칙상 `409 MESSAGE_LIMIT_EXCEEDED`를 반환합니다. (구현 메모의 낙관적 동시성 예외 정책 참고)
-- **메시지 작성 성공 시 연관된 캡슐의 `updatedAt` 필드를 갱신하여 방의 최신 활동(최신 메시지 수신) 상태를 반영합니다.**
-
-### 3.9 메시지 삭제
-
-`DELETE /capsules/{slug}/messages/{messageId}`
-
-Request Body
-
-```json
-{
-  "password": "1234"
-}
-```
-
-Response `204 No Content`
-
-규칙:
-
-- 관리자 비밀번호가 일치해야 합니다.
-- `slug` 형식과 `messageId` 양의 정수를 검증합니다.
-- 대상 capsule이 없으면 `404 CAPSULE_NOT_FOUND`
-- 대상 message가 해당 capsule에 없으면 `404 MESSAGE_NOT_FOUND`
-- 만료된 capsule이면 `410 CAPSULE_EXPIRED`
-- 삭제 성공 후 SSE 구독 중인 클라이언트에는 DB 기준 최신 `messageCount`가 push 됩니다.
+- **메시지 작성 성공 시 연관된 캡슐의 `updatedAt` 필드를 갱신하고, SSE 구독 중인 클라이언트에는 DB 기준 최신 `messageCount`를 push 합니다.**
 
 ## 4. 공통 에러 규격
 
@@ -398,7 +374,6 @@ Response `204 No Content`
 | `400`     | `INVALID_INPUT`             | Zod 검증 실패                            |
 | `403`     | `FORBIDDEN_PASSWORD`        | 비밀번호 불일치                          |
 | `404`     | `CAPSULE_NOT_FOUND`         | 존재하지 않는 `slug`                     |
-| `404`     | `MESSAGE_NOT_FOUND`         | 대상 capsule에 존재하지 않는 메시지      |
 | `409`     | `SLUG_ALREADY_IN_USE`       | 이미 사용 중이거나 현재 예약 중인 `slug` |
 | `409`     | `SLUG_RESERVATION_MISMATCH` | 예약 토큰이 없거나 소유권 검증 실패      |
 | `409`     | `DUPLICATE_NICKNAME`        | 같은 캡슐 내 닉네임 중복                 |

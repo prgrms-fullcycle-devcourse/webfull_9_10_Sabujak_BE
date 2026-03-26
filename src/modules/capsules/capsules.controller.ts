@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { capsuleMessageCountPublisher } from "./capsule-message-count.publisher";
 import { capsulesService } from "./capsules.service";
 import {
-  capsuleMessageParamsSchema,
   capsuleSlugParamsSchema,
   capsuleDetailResponseSchema,
   createCapsuleBodySchema,
@@ -11,7 +10,6 @@ import {
   createMessageResponseSchema,
   createSlugReservationBodySchema,
   deleteCapsuleBodySchema,
-  deleteMessageBodySchema,
   slugReservationResponseSchema,
   updateCapsuleBodySchema,
   updateCapsuleResponseSchema,
@@ -106,17 +104,4 @@ export const createMessage = async (req: Request, res: Response) => {
     ...body,
   });
   res.status(201).json(createMessageResponseSchema.parse(payload));
-};
-
-// 관리자 비밀번호 검증 이후 특정 메시지 Hard Delete
-export const deleteMessage = async (req: Request, res: Response) => {
-  const params = capsuleMessageParamsSchema.parse(req.params);
-  const body = deleteMessageBodySchema.parse(req.body);
-
-  await capsulesService.deleteMessage({
-    ...params,
-    ...body,
-  });
-
-  res.status(204).send();
 };
