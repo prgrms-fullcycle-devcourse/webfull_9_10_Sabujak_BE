@@ -112,6 +112,15 @@ flowchart LR
 - [ERD](./docs/ERD.md)
 - [Mock API 명세서](./docs/MOCK_API_SPEC.md)
 - [OpenAPI JSON](./openapi.json)
+- [QA 보고서 위치 안내](./docs/reports/README.md)
+
+## Artifact Ownership
+
+| 산출물 | 정본 위치 | 설명 |
+| --- | --- | --- |
+| 백엔드 unit/integration 테스트 코드 | 백엔드 레포 | 구현과 함께 변경되는 검증 자산 |
+| 백엔드 기술 문서 | 백엔드 `docs/` | 아키텍처, API, 스키마 문서 |
+| 블랙박스 QA 결과 보고서 | QA 레포 `docs/reports/backend/` | smoke/regression, 장애보고서, 대응 계획 |
 
 ## Development Workflow
 
