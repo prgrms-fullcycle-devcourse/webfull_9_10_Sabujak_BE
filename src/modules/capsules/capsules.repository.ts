@@ -390,7 +390,7 @@ export class CapsulesRepository {
       throw new CapsuleAlreadyOpenedException();
     }
 
-    if (capsule.expiresAt.getTime() <= Date.now()) {
+    if (capsule.expiresAt.getTime() <= now) {
       throw new CapsuleExpiredException();
     }
 
