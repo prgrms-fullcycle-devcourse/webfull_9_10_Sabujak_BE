@@ -502,6 +502,45 @@ describe("CapsulesRepository", () => {
     });
   });
 
+  describe("verifyCapsulePassword", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.verifyCapsulePassword({
+          slug: "missing-capsule",
+          password: "1234",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      await expect(
+        capsulesRepository.verifyCapsulePassword({
+          slug: "opened-capsule",
+          password: "9999",
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenPasswordException);
+    });
+
+    it("비밀번호가 일치하면 verified true를 반환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      await expect(
+        capsulesRepository.verifyCapsulePassword({
+          slug: "opened-capsule",
+          password: "1234",
+        }),
+      ).resolves.toEqual({ verified: true });
+    });
+  });
+
   describe("updateCapsule", () => {
     it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue(null);

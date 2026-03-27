@@ -55,16 +55,16 @@
 
 ## 2. 엔드포인트 목록
 
-| 도메인  | 기능                 | 메서드   | URI                           | 설명                            |
-| ------- | -------------------- | -------- | ----------------------------- | ------------------------------- |
-| System  | 헬스체크             | `GET`    | `/health`                     | 서버 상태 확인                  |
-| Capsule | 슬러그 예약 생성     | `POST`   | `/capsules/slug-reservations` | 중복 확인 후 5분 예약 토큰 발급 |
-| Capsule | 캡슐 생성            | `POST`   | `/capsules`                   | 신규 타임캡슐 생성              |
-| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slug}`            | 공개 전/후 화면용 통합 조회     |
-| Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slug}/verify`     | 수정/삭제 진입용 비밀번호 검증  |
-| Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slug}`            | 비밀번호 검증 후 수정           |
-| Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slug}`            | 비밀번호 검증 후 Hard Delete    |
-| Message | 메시지 작성❤️       | `POST`   | `/capsules/{slug}/messages`   | 익명 메시지 작성                |
+| 도메인  | 기능                   | 메서드   | URI                           | 설명                            |
+| ------- | ---------------------- | -------- | ----------------------------- | ------------------------------- |
+| System  | 헬스체크               | `GET`    | `/health`                     | 서버 상태 확인                  |
+| Capsule | 슬러그 예약 생성       | `POST`   | `/capsules/slug-reservations` | 중복 확인 후 5분 예약 토큰 발급 |
+| Capsule | 캡슐 생성              | `POST`   | `/capsules`                   | 신규 타임캡슐 생성              |
+| Capsule | 캡슐 조회              | `GET`    | `/capsules/{slug}`            | 공개 전/후 화면용 통합 조회     |
+| Capsule | 관리자 비밀번호 확인❤️ | `POST`   | `/capsules/{slug}/verify`     | 수정/삭제 진입용 비밀번호 검증  |
+| Capsule | 캡슐 수정              | `PATCH`  | `/capsules/{slug}`            | 비밀번호 검증 후 수정           |
+| Capsule | 캡슐 삭제              | `DELETE` | `/capsules/{slug}`            | 비밀번호 검증 후 Hard Delete    |
+| Message | 메시지 작성❤️          | `POST`   | `/capsules/{slug}/messages`   | 익명 메시지 작성                |
 
 ## 3. 엔드포인트 상세
 
@@ -212,7 +212,7 @@ Response `201 Created`
 - 공개 후 응답에서 각 메시지는 `id ASC` 순으로 정렬됩니다.
 - MVP 문서 범위에서 메시지 목록에 대한 페이지네이션은 미적용입니다.
 
-### 3.5 관리자 비밀번호 확인
+### 3.5 관리자 비밀번호 확인❤️
 
 `POST /capsules/{slug}/verify`
 
