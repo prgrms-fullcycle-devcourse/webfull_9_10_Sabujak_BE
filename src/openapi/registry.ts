@@ -148,7 +148,8 @@ registry.registerPath({
   path: "/capsules/{slug}",
   tags: ["Capsule"],
   summary: "캡슐 조회❤️",
-  description: "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
+  description:
+    "공개 전/후 상태에 따라 캡슐 기본 정보와 메시지 목록을 조회합니다.",
   request: {
     params: capsuleSlugParamsSchema,
   },
@@ -209,7 +210,7 @@ registry.registerPath({
   method: "post",
   path: "/capsules/{slug}/verify",
   tags: ["Capsule"],
-  summary: "관리자 비밀번호 확인",
+  summary: "관리자 비밀번호 확인❤️",
   description: "캡슐 관리자 비밀번호를 검증합니다.",
   request: {
     params: capsuleSlugParamsSchema,
@@ -332,10 +333,7 @@ registry.registerPath({
     },
     400: buildErrorResponse("INVALID_INPUT"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
-    409: buildErrorResponses(
-      "DUPLICATE_NICKNAME",
-      "MESSAGE_LIMIT_EXCEEDED",
-    ),
+    409: buildErrorResponses("DUPLICATE_NICKNAME", "MESSAGE_LIMIT_EXCEEDED"),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
