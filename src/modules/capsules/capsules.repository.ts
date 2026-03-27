@@ -374,6 +374,7 @@ export class CapsulesRepository {
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
+        openAt: true,
         expiresAt: true,
       },
       where: eq(capsules.slug, input.slug),
@@ -381,6 +382,12 @@ export class CapsulesRepository {
 
     if (!capsule) {
       throw new CapsuleNotFoundException();
+    }
+
+    const now = Date.now();
+
+    if (capsule.openAt.getTime() <= now) {
+      throw new CapsuleAlreadyOpenedException();
     }
 
     if (capsule.expiresAt.getTime() <= Date.now()) {
