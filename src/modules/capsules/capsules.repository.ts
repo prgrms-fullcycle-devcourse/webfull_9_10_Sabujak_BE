@@ -2,7 +2,6 @@ import { asc, count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
-import { buildVerifyPasswordMock } from "../../mocks/capsule.mock";
 import {
   deleteRedisKey,
   getRedisStringValue,
@@ -275,8 +274,29 @@ export class CapsulesRepository {
   }
 
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
-    void input;
-    return buildVerifyPasswordMock();
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        passwordHash: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    const isPasswordValid = await verifyPasswordHash(
+      input.password,
+      capsule.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new ForbiddenPasswordException();
+    }
+
+    return {
+      verified: true,
+    };
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
@@ -374,6 +394,7 @@ export class CapsulesRepository {
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
+        openAt: true,
         expiresAt: true,
       },
       where: eq(capsules.slug, input.slug),
@@ -383,7 +404,13 @@ export class CapsulesRepository {
       throw new CapsuleNotFoundException();
     }
 
-    if (capsule.expiresAt.getTime() <= Date.now()) {
+    const now = Date.now();
+
+    if (capsule.openAt.getTime() <= now) {
+      throw new CapsuleAlreadyOpenedException();
+    }
+
+    if (capsule.expiresAt.getTime() <= now) {
       throw new CapsuleExpiredException();
     }
 

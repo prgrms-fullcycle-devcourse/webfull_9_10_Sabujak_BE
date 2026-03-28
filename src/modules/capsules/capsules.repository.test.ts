@@ -48,15 +48,12 @@ const { db } = jest.requireMock("../../db") as {
   };
 };
 
-const {
-  getRedisStringValue,
-  setRedisStringIfAbsent,
-  deleteRedisKey,
-} = jest.requireMock("../../redis") as {
-  getRedisStringValue: jest.Mock;
-  setRedisStringIfAbsent: jest.Mock;
-  deleteRedisKey: jest.Mock;
-};
+const { getRedisStringValue, setRedisStringIfAbsent, deleteRedisKey } =
+  jest.requireMock("../../redis") as {
+    getRedisStringValue: jest.Mock;
+    setRedisStringIfAbsent: jest.Mock;
+    deleteRedisKey: jest.Mock;
+  };
 
 const PAST_DATE = new Date("2000-01-01T00:00:00.000Z");
 const FUTURE_DATE = new Date("2099-01-01T00:00:00.000Z");
@@ -165,7 +162,9 @@ describe("CapsulesRepository", () => {
           updatedAt: new Date("2026-03-23T00:00:00.000Z"),
         },
       ]);
-      const valuesMock = jest.fn().mockReturnValue({ returning: returningMock });
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
       db.insert.mockReturnValue({ values: valuesMock });
 
       const result = await capsulesRepository.createCapsule({
@@ -205,7 +204,9 @@ describe("CapsulesRepository", () => {
       getRedisStringValue.mockResolvedValue("valid-token");
 
       const returningMock = jest.fn().mockRejectedValue({ code: "23505" });
-      const valuesMock = jest.fn().mockReturnValue({ returning: returningMock });
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
       db.insert.mockReturnValue({ values: valuesMock });
 
       await expect(
@@ -256,8 +257,12 @@ describe("CapsulesRepository", () => {
         updatedAt: new Date("2026-03-10T00:00:00.000Z"),
       });
 
-      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 12 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countWhereMock = jest
+        .fn()
+        .mockResolvedValue([{ messageCount: 12 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
       const result = await capsulesRepository.getCapsule({
@@ -361,6 +366,7 @@ describe("CapsulesRepository", () => {
     it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
         expiresAt: PAST_DATE,
       });
 
@@ -376,10 +382,15 @@ describe("CapsulesRepository", () => {
     it("메시지가 300개면 MessageLimitExceededException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
         expiresAt: FUTURE_DATE,
       });
-      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 300 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countWhereMock = jest
+        .fn()
+        .mockResolvedValue([{ messageCount: 300 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
       await expect(
@@ -394,10 +405,13 @@ describe("CapsulesRepository", () => {
     it("정상 요청이면 메시지를 저장하고 capsule.updatedAt을 함께 갱신한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
         expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 1 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
       const messageReturningMock = jest.fn().mockResolvedValue([
@@ -411,10 +425,14 @@ describe("CapsulesRepository", () => {
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
-      const txInsertMock = jest.fn().mockReturnValue({ values: messageValuesMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
 
       const updateWhereMock = jest.fn().mockResolvedValue(undefined);
-      const updateSetMock = jest.fn().mockReturnValue({ where: updateWhereMock });
+      const updateSetMock = jest
+        .fn()
+        .mockReturnValue({ where: updateWhereMock });
       const txUpdateMock = jest.fn().mockReturnValue({ set: updateSetMock });
       db.transaction.mockImplementation(async (callback) =>
         callback({
@@ -449,17 +467,24 @@ describe("CapsulesRepository", () => {
     it("메시지 insert에서 unique constraint 충돌이면 DuplicateNicknameException으로 변환한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
         expiresAt: FUTURE_DATE,
       });
       const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
-      const countFromMock = jest.fn().mockReturnValue({ where: countWhereMock });
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
       db.select.mockReturnValue({ from: countFromMock });
 
-      const messageReturningMock = jest.fn().mockRejectedValue({ code: "23505" });
+      const messageReturningMock = jest
+        .fn()
+        .mockRejectedValue({ code: "23505" });
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
-      const txInsertMock = jest.fn().mockReturnValue({ values: messageValuesMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
       db.transaction.mockImplementation(async (callback) =>
         callback({
           insert: txInsertMock,
@@ -474,6 +499,45 @@ describe("CapsulesRepository", () => {
           content: "메시지",
         }),
       ).rejects.toBeInstanceOf(DuplicateNicknameException);
+    });
+  });
+
+  describe("verifyCapsulePassword", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.verifyCapsulePassword({
+          slug: "missing-capsule",
+          password: "1234",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      await expect(
+        capsulesRepository.verifyCapsulePassword({
+          slug: "opened-capsule",
+          password: "9999",
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenPasswordException);
+    });
+
+    it("비밀번호가 일치하면 verified true를 반환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      await expect(
+        capsulesRepository.verifyCapsulePassword({
+          slug: "opened-capsule",
+          password: "1234",
+        }),
+      ).resolves.toEqual({ verified: true });
     });
   });
 
