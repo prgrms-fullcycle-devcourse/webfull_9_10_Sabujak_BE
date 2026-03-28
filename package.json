@@ -71,7 +71,8 @@
   },
   "pnpm": {
     "overrides": {
-      "yaml": "^2.8.3"
+      "yaml": "^2.8.3",
+      "path-to-regexp": ">=8.4.0"
     }
   }
 }
