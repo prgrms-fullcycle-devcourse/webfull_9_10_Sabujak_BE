@@ -448,9 +448,16 @@ export class CapsulesRepository {
           createdAt: createdMessage.createdAt.toISOString(),
         };
       });
-    } catch (error: any) {
-      // Drizzle 트랜잭션 등에서 에러가 한 번 래핑(DrizzleQueryError)되어 원본 에러가 cause에 들어가는 경우 대비
-      const errorCode = error?.code || error?.cause?.code || error?.error?.code;
+    } catch (error) {
+      // any를 피하면서도 Lint를 통과하기 위해 구조적으로 안전한 커스텀 타입으로 단언(캐스팅)합니다.
+      const err = error as {
+        code?: string;
+        cause?: { code?: string };
+        error?: { code?: string };
+      };
+
+      // 원본 에러, cause 내부, error 내부 순서로 23505 중복 코드가 있는지 깔끔하게 탐색합니다.
+      const errorCode = err?.code || err?.cause?.code || err?.error?.code;
 
       if (errorCode === "23505") {
         throw new DuplicateNicknameException();
