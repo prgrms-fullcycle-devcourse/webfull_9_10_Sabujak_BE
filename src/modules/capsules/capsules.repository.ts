@@ -448,13 +448,11 @@ export class CapsulesRepository {
           createdAt: createdMessage.createdAt.toISOString(),
         };
       });
-    } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "23505"
-      ) {
+    } catch (error: any) {
+      // Drizzle 트랜잭션 등에서 에러가 한 번 래핑(DrizzleQueryError)되어 원본 에러가 cause에 들어가는 경우 대비
+      const errorCode = error?.code || error?.cause?.code || error?.error?.code;
+
+      if (errorCode === "23505") {
         throw new DuplicateNicknameException();
       }
 
