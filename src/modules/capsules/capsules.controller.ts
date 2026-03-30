@@ -48,8 +48,8 @@ export const streamCapsuleMessageCount = async (
 ) => {
   const params = capsuleSlugParamsSchema.parse(req.params);
 
-  // 초기 count 조회를 publisher 내부로 넘겨 subscribe 와 snapshot 보정을 같은 흐름에서 처리합니다.
-  capsuleMessageCountPublisher.subscribe({
+  // subscriber 등록은 먼저 하되, snapshot 검증 성공 전에는 헤더를 열지 않아 404/410 계약을 유지합니다.
+  await capsuleMessageCountPublisher.subscribe({
     getSnapshot: () => capsulesService.getMessageCount(params),
     slug: params.slug,
     response: res,

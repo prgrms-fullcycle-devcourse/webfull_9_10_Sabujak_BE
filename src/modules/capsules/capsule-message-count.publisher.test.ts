@@ -46,7 +46,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("구독 직후 SSE 헤더와 초기 messageCount 이벤트를 전송한다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 3,
@@ -54,8 +54,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-
-    await Promise.resolve();
 
     expect(response.headers.get("Content-Type")).toBe("text/event-stream");
     expect(response.headers.get("Cache-Control")).toBe(
@@ -70,7 +68,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("publish 호출 시 같은 slug 구독자에게 새 count를 전송한다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -78,8 +76,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-
-    await Promise.resolve();
 
     publisher.publish("opened-capsule", { messageCount: 2 });
 
@@ -89,7 +85,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("더 작은 count가 늦게 들어오면 역전 이벤트를 전송하지 않는다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -97,8 +93,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-
-    await Promise.resolve();
 
     publisher.publish("opened-capsule", { messageCount: 3 });
     publisher.publish("opened-capsule", { messageCount: 2 });
@@ -110,7 +104,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("같은 count가 다시 publish 되면 중복 이벤트를 전송하지 않는다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -118,8 +112,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-
-    await Promise.resolve();
 
     publisher.publish("opened-capsule", { messageCount: 3 });
     publisher.publish("opened-capsule", { messageCount: 3 });
@@ -131,7 +123,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("close 이벤트가 발생하면 subscriber를 정리한다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -139,8 +131,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-
-    await Promise.resolve();
 
     expect(publisher.getSubscriberCount("opened-capsule")).toBe(1);
 
@@ -152,7 +142,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("heartbeat를 주기적으로 전송한다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -160,8 +150,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-
-    await Promise.resolve();
 
     jest.advanceTimersByTime(25_000);
 
@@ -181,7 +169,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       resolveSnapshot = resolve;
     });
 
-    publisher.subscribe({
+    const subscribePromise = publisher.subscribe({
       getSnapshot: () => snapshotPromise,
       slug: "opened-capsule",
       response: response as never,
@@ -189,7 +177,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
 
     publisher.publish("opened-capsule", { messageCount: 4 });
     resolveSnapshot({ expiresAt: futureExpiresAt, messageCount: 3 });
-    await Promise.resolve();
+    await subscribePromise;
 
     expect(response.writes).toHaveLength(1);
     expect(response.writes[0]).toContain('"messageCount":4');
@@ -199,7 +187,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
     const firstResponse = new MockSseResponse();
     const secondResponse = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -207,11 +195,10 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: firstResponse as never,
     });
-    await Promise.resolve();
 
     publisher.publish("opened-capsule", { messageCount: 5 });
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 2,
@@ -219,7 +206,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: secondResponse as never,
     });
-    await Promise.resolve();
 
     expect(secondResponse.writes).toHaveLength(1);
     expect(secondResponse.writes[0]).toContain('"messageCount":5');
@@ -229,7 +215,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
     const firstResponse = new MockSseResponse();
     const secondResponse = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -237,7 +223,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: firstResponse as never,
     });
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: futureExpiresAt,
         messageCount: 1,
@@ -245,7 +231,6 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: secondResponse as never,
     });
-    await Promise.resolve();
 
     publisher.closeSlug("opened-capsule");
 
@@ -257,7 +242,7 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
   it("capsule 만료 시 SSE subscriber를 정리하고 연결을 종료한다", async () => {
     const response = new MockSseResponse();
 
-    publisher.subscribe({
+    await publisher.subscribe({
       getSnapshot: async () => ({
         expiresAt: "2026-03-30T00:00:05.000Z",
         messageCount: 1,
@@ -265,11 +250,28 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
       slug: "opened-capsule",
       response: response as never,
     });
-    await Promise.resolve();
 
     jest.advanceTimersByTime(5_000);
 
     expect(publisher.getSubscriberCount("opened-capsule")).toBe(0);
     expect(response.ended).toBe(true);
+  });
+
+  it("초기 snapshot 조회가 실패하면 헤더를 열지 않고 subscriber를 정리한다", async () => {
+    const response = new MockSseResponse();
+
+    await expect(
+      publisher.subscribe({
+        getSnapshot: async () => {
+          throw new Error("snapshot failed");
+        },
+        slug: "opened-capsule",
+        response: response as never,
+      }),
+    ).rejects.toThrow("snapshot failed");
+
+    expect(response.flushed).toBe(false);
+    expect(response.headers.size).toBe(0);
+    expect(publisher.getSubscriberCount("opened-capsule")).toBe(0);
   });
 });
