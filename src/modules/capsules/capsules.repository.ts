@@ -112,9 +112,24 @@ const isUniqueConstraintViolation = (
   error: unknown,
   constraint: string,
 ): boolean => {
-  let currentError: unknown = error;
+  const queue: unknown[] = [error];
+  const visited = new Set<object>();
+  let inspectedCount = 0;
 
-  while (typeof currentError === "object" && currentError !== null) {
+  while (queue.length > 0 && inspectedCount < 10) {
+    const currentError = queue.shift();
+
+    if (typeof currentError !== "object" || currentError === null) {
+      continue;
+    }
+
+    if (visited.has(currentError)) {
+      continue;
+    }
+
+    visited.add(currentError);
+    inspectedCount += 1;
+
     const record = currentError as Record<string, unknown>;
 
     if (
@@ -124,7 +139,7 @@ const isUniqueConstraintViolation = (
       return true;
     }
 
-    currentError = record.cause;
+    queue.push(record.cause, record.error);
   }
 
   return false;

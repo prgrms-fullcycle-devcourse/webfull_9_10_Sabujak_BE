@@ -71,6 +71,12 @@ const buildLayeredUniqueConstraintMismatchError = (constraint: string) => ({
     constraint,
   },
 });
+const buildErrorWrappedUniqueViolationError = (constraint: string) => ({
+  error: {
+    code: "23505",
+    constraint,
+  },
+});
 
 describe("CapsulesRepository", () => {
   const buildPasswordHash = (password: string) => {
@@ -259,6 +265,30 @@ describe("CapsulesRepository", () => {
       ).rejects.toBe(unexpectedError);
     });
 
+    it("error 속성에 감싼 slug unique constraint 충돌도 SlugAlreadyInUseException으로 변환한다", async () => {
+      getRedisStringValue.mockResolvedValue("valid-token");
+
+      const returningMock = jest
+        .fn()
+        .mockRejectedValue(
+          buildErrorWrappedUniqueViolationError("capsules_slug_unq"),
+        );
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
+      db.insert.mockReturnValue({ values: valuesMock });
+
+      await expect(
+        capsulesRepository.createCapsule({
+          slug: "duplicate-slug",
+          title: "중복 캡슐",
+          password: "1234",
+          openAt: "2026-12-25T12:00:00.000Z",
+          reservationToken: "valid-token",
+        }),
+      ).rejects.toBeInstanceOf(SlugAlreadyInUseException);
+    });
+
     it("code와 constraint가 서로 다른 error 레벨에 있으면 원본 에러를 그대로 던진다", async () => {
       getRedisStringValue.mockResolvedValue("valid-token");
 
@@ -279,6 +309,29 @@ describe("CapsulesRepository", () => {
           reservationToken: "valid-token",
         }),
       ).rejects.toBe(layeredError);
+    });
+
+    it("cause가 순환 참조여도 무한 루프 없이 원본 에러를 그대로 던진다", async () => {
+      getRedisStringValue.mockResolvedValue("valid-token");
+
+      const circularError: { cause?: unknown } = {};
+      circularError.cause = circularError;
+
+      const returningMock = jest.fn().mockRejectedValue(circularError);
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
+      db.insert.mockReturnValue({ values: valuesMock });
+
+      await expect(
+        capsulesRepository.createCapsule({
+          slug: "duplicate-slug",
+          title: "중복 캡슐",
+          password: "1234",
+          openAt: "2026-12-25T12:00:00.000Z",
+          reservationToken: "valid-token",
+        }),
+      ).rejects.toBe(circularError);
     });
 
     it("Redis 예약 정리 실패가 발생해도 캡슐 생성 성공 응답을 반환한다", async () => {
@@ -650,6 +703,47 @@ describe("CapsulesRepository", () => {
       ).rejects.toBe(unexpectedError);
     });
 
+    it("error 속성에 감싼 nickname unique constraint 충돌도 DuplicateNicknameException으로 변환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
+        expiresAt: FUTURE_DATE,
+      });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      const messageReturningMock = jest
+        .fn()
+        .mockRejectedValue(
+          buildErrorWrappedUniqueViolationError(
+            "messages_capsule_id_nickname_unq",
+          ),
+        );
+      const messageValuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: messageReturningMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          insert: txInsertMock,
+          update: jest.fn(),
+        }),
+      );
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "opened-capsule",
+          nickname: "중복 닉네임",
+          content: "메시지",
+        }),
+      ).rejects.toBeInstanceOf(DuplicateNicknameException);
+    });
+
     it("code와 constraint가 서로 다른 error 레벨에 있으면 원본 에러를 그대로 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
@@ -686,6 +780,44 @@ describe("CapsulesRepository", () => {
           content: "메시지",
         }),
       ).rejects.toBe(layeredError);
+    });
+
+    it("cause가 순환 참조여도 무한 루프 없이 원본 에러를 그대로 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
+        expiresAt: FUTURE_DATE,
+      });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      const circularError: { cause?: unknown } = {};
+      circularError.cause = circularError;
+
+      const messageReturningMock = jest.fn().mockRejectedValue(circularError);
+      const messageValuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: messageReturningMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          insert: txInsertMock,
+          update: jest.fn(),
+        }),
+      );
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "opened-capsule",
+          nickname: "중복 닉네임",
+          content: "메시지",
+        }),
+      ).rejects.toBe(circularError);
     });
   });
 
