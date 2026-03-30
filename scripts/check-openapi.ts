@@ -6,12 +6,8 @@ import { generateOpenApiDocument } from "../src/openapi/registry";
 const outputPath = path.resolve(process.cwd(), "openapi.json");
 
 const main = async () => {
-  const expected = await prettier.format(
-    JSON.stringify(generateOpenApiDocument()),
-    {
-      parser: "json",
-    },
-  );
+  const serialized = `${JSON.stringify(generateOpenApiDocument(), null, 2)}\n`;
+  const expected = await prettier.format(serialized, { parser: "json" });
   const actual = await fs.readFile(outputPath, "utf-8").catch(() => "");
 
   if (actual !== expected) {

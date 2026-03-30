@@ -7,11 +7,10 @@ const outputPath = path.resolve(process.cwd(), "openapi.json");
 
 const main = async () => {
   const document = generateOpenApiDocument();
-  const serialized = await prettier.format(JSON.stringify(document), {
-    parser: "json",
-  });
+  const serialized = `${JSON.stringify(document, null, 2)}\n`;
+  const formatted = await prettier.format(serialized, { parser: "json" });
 
-  await fs.writeFile(outputPath, serialized, "utf-8");
+  await fs.writeFile(outputPath, formatted, "utf-8");
   console.log(`OpenAPI document generated at ${outputPath}`);
 };
 

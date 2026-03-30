@@ -55,21 +55,21 @@
 
 ## 2. 엔드포인트 목록
 
-| 도메인  | 기능                  | 메서드   | URI                                     | 설명                            |
-| ------- | --------------------- | -------- | --------------------------------------- | ------------------------------- |
-| System  | 헬스체크              | `GET`    | `/health`                               | 서버 상태 확인                  |
-| Capsule | 슬러그 예약 생성      | `POST`   | `/capsules/slug-reservations`           | 중복 확인 후 5분 예약 토큰 발급 |
-| Capsule | 캡슐 생성             | `POST`   | `/capsules`                             | 신규 타임캡슐 생성              |
-| Capsule | 캡슐 조회             | `GET`    | `/capsules/{slug}`                      | 공개 전/후 화면용 통합 조회     |
-| Capsule | messageCount SSE 구독 | `GET`    | `/capsules/{slug}/message-count/stream` | messageCount 실시간 구독        |
-| Capsule | 관리자 비밀번호 확인  | `POST`   | `/capsules/{slug}/verify`               | 수정/삭제 진입용 비밀번호 검증  |
-| Capsule | 캡슐 수정             | `PATCH`  | `/capsules/{slug}`                      | 비밀번호 검증 후 수정           |
-| Capsule | 캡슐 삭제             | `DELETE` | `/capsules/{slug}`                      | 비밀번호 검증 후 Hard Delete    |
-| Message | 메시지 작성❤️         | `POST`   | `/capsules/{slug}/messages`             | 익명 메시지 작성                |
+| 도메인  | 기능                   | 메서드   | URI                                     | 설명                            |
+| ------- | ---------------------- | -------- | --------------------------------------- | ------------------------------- |
+| System  | 헬스체크❤️             | `GET`    | `/health`                               | 서버 상태 확인                  |
+| Capsule | 슬러그 예약 생성❤️     | `POST`   | `/capsules/slug-reservations`           | 중복 확인 후 5분 예약 토큰 발급 |
+| Capsule | 캡슐 생성❤️            | `POST`   | `/capsules`                             | 신규 타임캡슐 생성              |
+| Capsule | 캡슐 조회❤️            | `GET`    | `/capsules/{slug}`                      | 공개 전/후 화면용 통합 조회     |
+| Capsule | messageCount SSE 구독  | `GET`    | `/capsules/{slug}/message-count/stream` | messageCount 실시간 구독        |
+| Capsule | 관리자 비밀번호 확인❤️ | `POST`   | `/capsules/{slug}/verify`               | 수정/삭제 진입용 비밀번호 검증  |
+| Capsule | 캡슐 수정❤️            | `PATCH`  | `/capsules/{slug}`                      | 비밀번호 검증 후 수정           |
+| Capsule | 캡슐 삭제❤️            | `DELETE` | `/capsules/{slug}`                      | 비밀번호 검증 후 Hard Delete    |
+| Message | 메시지 작성❤️          | `POST`   | `/capsules/{slug}/messages`             | 익명 메시지 작성                |
 
 ## 3. 엔드포인트 상세
 
-### 3.1 헬스체크
+### 3.1 헬스체크❤️
 
 `GET /health`
 
@@ -81,7 +81,7 @@ Response `200 OK`
 }
 ```
 
-### 3.2 슬러그 예약 생성
+### 3.2 슬러그 예약 생성❤️
 
 `POST /capsules/slug-reservations`
 
@@ -114,7 +114,7 @@ Response `201 Created`
 - Redis value에는 예약 소유권 검증용 임시 토큰(`reservationToken`)을 저장합니다.
 - 이미 사용 중이거나 현재 예약 중인 `slug`이면 `409 SLUG_ALREADY_IN_USE`
 
-### 3.3 캡슐 생성
+### 3.3 캡슐 생성❤️
 
 `POST /capsules`
 
@@ -155,7 +155,7 @@ Response `201 Created`
 - 캡슐 생성이 성공하면 해당 `slug` 의 Redis 예약 정보는 즉시 정리합니다.
 - 최종 저장 시 `slug` unique constraint 충돌이 발생하면 `409 SLUG_ALREADY_IN_USE`를 반환합니다.
 
-### 3.4 캡슐 조회
+### 3.4 캡슐 조회❤️
 
 `GET /capsules/{slug}`
 
@@ -239,7 +239,7 @@ data: {"messageCount":12}
 - 만료된 capsule이면 `410 CAPSULE_EXPIRED`
 - count는 기존 `GET /capsules/{slug}` 와 동일하게 DB 기준으로 계산합니다.
 
-### 3.5 관리자 비밀번호 확인
+### 3.5 관리자 비밀번호 확인❤️
 
 `POST /capsules/{slug}/verify`
 
@@ -265,7 +265,7 @@ Response `200 OK`
 - 비밀번호 불일치 시 `403 FORBIDDEN_PASSWORD`
 - 동일 IP 또는 동일 `slug`에 대한 연속 실패는 rate limit 대상입니다.
 
-### 3.6 캡슐 수정
+### 3.6 캡슐 수정❤️
 
 `PATCH /capsules/{slug}`
 
@@ -302,7 +302,7 @@ Response `200 OK`
 - 이미 만료된 캡슐은 수정할 수 없습니다.
 - 공개 여부와 무관하게 수정 허용 여부는 운영 정책으로 고정해야 하며, MVP에서는 `openAt` 이전까지만 수정 가능으로 정의합니다.
 
-### 3.7 캡슐 삭제
+### 3.7 캡슐 삭제❤️
 
 `DELETE /capsules/{slug}`
 

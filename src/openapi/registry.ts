@@ -236,7 +236,7 @@ registry.registerPath({
   method: "post",
   path: "/capsules/{slug}/verify",
   tags: ["Capsule"],
-  summary: "관리자 비밀번호 확인",
+  summary: "관리자 비밀번호 확인❤️",
   description: "캡슐 관리자 비밀번호를 검증합니다.",
   request: {
     params: capsuleSlugParamsSchema,
