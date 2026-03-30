@@ -32,7 +32,7 @@ const formatSseEvent = (event: string, payload: PublishPayload) =>
   `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
 
 export interface CapsuleMessageCountPublisher {
-  subscribe(input: SubscribeInput): () => void;
+  subscribe(input: SubscribeInput): Promise<() => void>;
   publish(slug: string, payload: PublishPayload): void;
   closeSlug(slug: string): void;
 }
@@ -41,13 +41,7 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
   private readonly channels = new Map<string, MessageCountChannel>();
   private nextSubscriberId = 1;
 
-  subscribe({ slug, response, getSnapshot }: SubscribeInput) {
-    response.setHeader("Content-Type", "text/event-stream");
-    response.setHeader("Cache-Control", "no-cache, no-transform");
-    response.setHeader("Connection", "keep-alive");
-    response.setHeader("X-Accel-Buffering", "no");
-    response.flushHeaders();
-
+  async subscribe({ slug, response, getSnapshot }: SubscribeInput) {
     const subscriber: MessageCountSubscriber = {
       cleanup: () => undefined,
       expirationTimer: null,
@@ -89,32 +83,36 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
 
     channel.subscribers.add(subscriber);
 
-    const heartbeatTimer = setInterval(() => {
-      response.write(": keep-alive\n\n");
-    }, HEARTBEAT_INTERVAL_MS);
+    try {
+      const snapshot = await getSnapshot();
 
-    const release = () => {
-      clearInterval(heartbeatTimer);
+      if (!channel.subscribers.has(subscriber)) {
+        return () => undefined;
+      }
+
+      response.setHeader("Content-Type", "text/event-stream");
+      response.setHeader("Cache-Control", "no-cache, no-transform");
+      response.setHeader("Connection", "keep-alive");
+      response.setHeader("X-Accel-Buffering", "no");
+      response.flushHeaders();
+
+      const heartbeatTimer = setInterval(() => {
+        response.write(": keep-alive\n\n");
+      }, HEARTBEAT_INTERVAL_MS);
+
+      const release = () => {
+        clearInterval(heartbeatTimer);
+        cleanup();
+      };
+
+      subscriber.cleanup = release;
+      this.initializeSubscriber(slug, subscriber, snapshot);
+
+      return release;
+    } catch (error) {
       cleanup();
-    };
-
-    void this.initializeSubscriber(slug, subscriber, getSnapshot).catch(
-      (error) => {
-        console.error(
-          "[capsules] Failed to initialize messageCount SSE subscriber.",
-          error,
-        );
-
-        release();
-
-        if (!response.writableEnded) {
-          response.end();
-        }
-      },
-    );
-
-    subscriber.cleanup = release;
-    return release;
+      throw error;
+    }
   }
 
   publish(slug: string, payload: PublishPayload) {
@@ -184,12 +182,11 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
     });
   }
 
-  private async initializeSubscriber(
+  private initializeSubscriber(
     slug: string,
     subscriber: MessageCountSubscriber,
-    getSnapshot: SubscribeInput["getSnapshot"],
+    snapshot: Awaited<ReturnType<SubscribeInput["getSnapshot"]>>,
   ) {
-    const snapshot = await getSnapshot();
     const channel = this.channels.get(slug);
 
     if (!channel || !channel.subscribers.has(subscriber)) {
