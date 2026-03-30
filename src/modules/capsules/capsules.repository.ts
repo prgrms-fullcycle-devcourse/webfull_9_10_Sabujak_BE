@@ -274,6 +274,35 @@ export class CapsulesRepository {
     };
   }
 
+  async getMessageCountBySlug(input: GetCapsuleInputDto) {
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        id: true,
+        expiresAt: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    if (capsule.expiresAt.getTime() <= Date.now()) {
+      throw new CapsuleExpiredException();
+    }
+
+    const [{ messageCount }] = await db
+      .select({ messageCount: count() })
+      .from(messages)
+      .where(eq(messages.capsuleId, capsule.id));
+
+    return {
+      // SSE 구독 시 만료 타이머를 걸 수 있도록 현재 expiresAt 도 함께 반환합니다.
+      expiresAt: capsule.expiresAt.toISOString(),
+      messageCount,
+    };
+  }
+
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
     const capsule = await db.query.capsules.findFirst({
       columns: {

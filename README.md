@@ -116,11 +116,11 @@ flowchart LR
 
 ## Artifact Ownership
 
-| 산출물 | 정본 위치 | 설명 |
-| --- | --- | --- |
-| 백엔드 unit/integration 테스트 코드 | 백엔드 레포 | 구현과 함께 변경되는 검증 자산 |
-| 백엔드 기술 문서 | 백엔드 `docs/` | 아키텍처, API, 스키마 문서 |
-| 블랙박스 QA 결과 보고서 | QA 레포 `docs/reports/backend/` | smoke/regression, 장애보고서, 대응 계획 |
+| 산출물                              | 정본 위치                       | 설명                                    |
+| ----------------------------------- | ------------------------------- | --------------------------------------- |
+| 백엔드 unit/integration 테스트 코드 | 백엔드 레포                     | 구현과 함께 변경되는 검증 자산          |
+| 백엔드 기술 문서                    | 백엔드 `docs/`                  | 아키텍처, API, 스키마 문서              |
+| 블랙박스 QA 결과 보고서             | QA 레포 `docs/reports/backend/` | smoke/regression, 장애보고서, 대응 계획 |
 
 ## Development Workflow
 
@@ -198,19 +198,19 @@ pnpm run dev
 
 자세한 예시는 [`.env.example`](./.env.example)에 정리되어 있습니다.
 
-| Variable              | Description                     |
-| --------------------- | ------------------------------- |
-| `NODE_ENV`            | 실행 환경                       |
-| `API_PORT`            | API 서버 포트                   |
-| `POSTGRES_USER`       | 로컬 PostgreSQL 계정            |
-| `POSTGRES_PASSWORD`   | 로컬 PostgreSQL 비밀번호        |
-| `POSTGRES_DB`         | 로컬 PostgreSQL DB 이름         |
-| `DATABASE_URL`        | DB 연결 문자열                  |
-| `REDIS_URL`           | 로컬 Redis 연결 문자열          |
-| `CORS_ORIGIN`         | 허용할 CORS origin 목록         |
-| `CHOKIDAR_USEPOLLING` | Docker 개발 환경 파일 감시 옵션 |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL       |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST 토큰     |
+| Variable                   | Description                     |
+| -------------------------- | ------------------------------- |
+| `NODE_ENV`                 | 실행 환경                       |
+| `API_PORT`                 | API 서버 포트                   |
+| `POSTGRES_USER`            | 로컬 PostgreSQL 계정            |
+| `POSTGRES_PASSWORD`        | 로컬 PostgreSQL 비밀번호        |
+| `POSTGRES_DB`              | 로컬 PostgreSQL DB 이름         |
+| `DATABASE_URL`             | DB 연결 문자열                  |
+| `REDIS_URL`                | 로컬 Redis 연결 문자열          |
+| `CORS_ORIGIN`              | 허용할 CORS origin 목록         |
+| `CHOKIDAR_USEPOLLING`      | Docker 개발 환경 파일 감시 옵션 |
+| `UPSTASH_REDIS_REST_URL`   | Upstash Redis REST URL          |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST 토큰         |
 
 ## Team
 

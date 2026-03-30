@@ -350,6 +350,47 @@ describe("CapsulesRepository", () => {
     });
   });
 
+  describe("getMessageCountBySlug", () => {
+    it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+
+      await expect(
+        capsulesRepository.getMessageCountBySlug({ slug: "missing-capsule" }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: PAST_DATE,
+      });
+
+      await expect(
+        capsulesRepository.getMessageCountBySlug({ slug: "expired-capsule" }),
+      ).rejects.toBeInstanceOf(CapsuleExpiredException);
+    });
+
+    it("유효한 캡슐이면 최신 messageCount를 반환한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        expiresAt: FUTURE_DATE,
+      });
+
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 7 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      await expect(
+        capsulesRepository.getMessageCountBySlug({ slug: "opened-capsule" }),
+      ).resolves.toEqual({
+        expiresAt: FUTURE_DATE.toISOString(),
+        messageCount: 7,
+      });
+    });
+  });
+
   describe("createMessage", () => {
     it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
       db.query.capsules.findFirst.mockResolvedValue(null);
