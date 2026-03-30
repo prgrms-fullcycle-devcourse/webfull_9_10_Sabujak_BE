@@ -32,6 +32,8 @@ const SLUG_RESERVATION_TTL_SECONDS = 300;
 const SLUG_RESERVATION_KEY_PREFIX = "capsule:slug-reservation:";
 const CAPSULE_OPEN_DURATION_DAYS = 7;
 const MESSAGE_LIMIT_PER_CAPSULE = 300;
+const CAPSULE_SLUG_UNIQUE_CONSTRAINT = "capsules_slug_unq";
+const MESSAGE_NICKNAME_UNIQUE_CONSTRAINT = "messages_capsule_id_nickname_unq";
 
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const PG_UNIQUE_VIOLATION_CODE = "23505";
@@ -106,6 +108,43 @@ const calculateExpiresAt = (openAt: Date) => {
   );
 };
 
+const isUniqueConstraintViolation = (
+  error: unknown,
+  constraint: string,
+): boolean => {
+  const queue: unknown[] = [error];
+  const visited = new Set<object>();
+  let inspectedCount = 0;
+
+  while (queue.length > 0 && inspectedCount < 10) {
+    const currentError = queue.shift();
+
+    if (typeof currentError !== "object" || currentError === null) {
+      continue;
+    }
+
+    if (visited.has(currentError)) {
+      continue;
+    }
+
+    visited.add(currentError);
+    inspectedCount += 1;
+
+    const record = currentError as Record<string, unknown>;
+
+    if (
+      record.code === PG_UNIQUE_VIOLATION_CODE &&
+      record.constraint === constraint
+    ) {
+      return true;
+    }
+
+    queue.push(record.cause, record.error);
+  }
+
+  return false;
+};
+
 export class CapsulesRepository {
   async createSlugReservation(input: CreateSlugReservationInputDto) {
     // 최종 저장소인 DB에 이미 사용 중인 slug가 있으면 즉시 차단합니다.
@@ -175,10 +214,7 @@ export class CapsulesRepository {
         })
         .returning();
 
-      // 사용이 끝난 예약은 즉시 제거해 동일 토큰 재사용을 막습니다.
-      await deleteRedisKey(reservationKey);
-
-      return {
+      const response = {
         id: createdCapsule.id,
         slug: createdCapsule.slug,
         title: createdCapsule.title,
@@ -187,13 +223,20 @@ export class CapsulesRepository {
         createdAt: createdCapsule.createdAt.toISOString(),
         updatedAt: createdCapsule.updatedAt.toISOString(),
       };
+
+      try {
+        // 사용이 끝난 예약은 즉시 제거해 동일 토큰 재사용을 막습니다.
+        await deleteRedisKey(reservationKey);
+      } catch (error) {
+        console.error(
+          "[capsules] Failed to clean up slug reservation after capsule creation.",
+          error,
+        );
+      }
+
+      return response;
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "23505"
-      ) {
+      if (isUniqueConstraintViolation(error, CAPSULE_SLUG_UNIQUE_CONSTRAINT)) {
         throw new SlugAlreadyInUseException();
       }
 
@@ -479,17 +522,9 @@ export class CapsulesRepository {
         };
       });
     } catch (error) {
-      // any 타입 사용 피하기 위한 타입 단언
-      const err = error as {
-        code?: string;
-        cause?: { code?: string };
-        error?: { code?: string };
-      };
-
-      // 원본 에러, cause 내부, error 내부 순서로 23505 중복 코드가 있는지 탐색
-      const errorCode = err?.code || err?.cause?.code || err?.error?.code;
-
-      if (errorCode === PG_UNIQUE_VIOLATION_CODE) {
+      if (
+        isUniqueConstraintViolation(error, MESSAGE_NICKNAME_UNIQUE_CONSTRAINT)
+      ) {
         throw new DuplicateNicknameException();
       }
 
