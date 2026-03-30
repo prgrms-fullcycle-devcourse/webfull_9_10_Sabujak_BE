@@ -58,6 +58,19 @@ const { getRedisStringValue, setRedisStringIfAbsent, deleteRedisKey } =
 const PAST_DATE = new Date("2000-01-01T00:00:00.000Z");
 const FUTURE_DATE = new Date("2099-01-01T00:00:00.000Z");
 const MESSAGE_CREATED_AT = new Date("2026-03-23T10:00:00.000Z");
+const buildDrizzleUniqueViolationError = (constraint: string) => ({
+  name: "DrizzleQueryError",
+  cause: {
+    code: "23505",
+    constraint,
+  },
+});
+const buildLayeredUniqueConstraintMismatchError = (constraint: string) => ({
+  code: "23505",
+  cause: {
+    constraint,
+  },
+});
 
 describe("CapsulesRepository", () => {
   const buildPasswordHash = (password: string) => {
@@ -200,10 +213,14 @@ describe("CapsulesRepository", () => {
       });
     });
 
-    it("DB unique constraint 충돌이면 SlugAlreadyInUseException으로 변환한다", async () => {
+    it("Drizzle이 감싼 slug unique constraint 충돌이면 SlugAlreadyInUseException으로 변환한다", async () => {
       getRedisStringValue.mockResolvedValue("valid-token");
 
-      const returningMock = jest.fn().mockRejectedValue({ code: "23505" });
+      const returningMock = jest
+        .fn()
+        .mockRejectedValue(
+          buildDrizzleUniqueViolationError("capsules_slug_unq"),
+        );
       const valuesMock = jest
         .fn()
         .mockReturnValue({ returning: returningMock });
@@ -218,6 +235,99 @@ describe("CapsulesRepository", () => {
           reservationToken: "valid-token",
         }),
       ).rejects.toBeInstanceOf(SlugAlreadyInUseException);
+    });
+
+    it("다른 unique constraint 충돌이면 원본 에러를 그대로 던진다", async () => {
+      getRedisStringValue.mockResolvedValue("valid-token");
+
+      const unexpectedError =
+        buildDrizzleUniqueViolationError("capsules_other_unq");
+      const returningMock = jest.fn().mockRejectedValue(unexpectedError);
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
+      db.insert.mockReturnValue({ values: valuesMock });
+
+      await expect(
+        capsulesRepository.createCapsule({
+          slug: "duplicate-slug",
+          title: "중복 캡슐",
+          password: "1234",
+          openAt: "2026-12-25T12:00:00.000Z",
+          reservationToken: "valid-token",
+        }),
+      ).rejects.toBe(unexpectedError);
+    });
+
+    it("code와 constraint가 서로 다른 error 레벨에 있으면 원본 에러를 그대로 던진다", async () => {
+      getRedisStringValue.mockResolvedValue("valid-token");
+
+      const layeredError =
+        buildLayeredUniqueConstraintMismatchError("capsules_slug_unq");
+      const returningMock = jest.fn().mockRejectedValue(layeredError);
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
+      db.insert.mockReturnValue({ values: valuesMock });
+
+      await expect(
+        capsulesRepository.createCapsule({
+          slug: "duplicate-slug",
+          title: "중복 캡슐",
+          password: "1234",
+          openAt: "2026-12-25T12:00:00.000Z",
+          reservationToken: "valid-token",
+        }),
+      ).rejects.toBe(layeredError);
+    });
+
+    it("Redis 예약 정리 실패가 발생해도 캡슐 생성 성공 응답을 반환한다", async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+
+      getRedisStringValue.mockResolvedValue("valid-token");
+      deleteRedisKey.mockRejectedValue(new Error("redis delete failed"));
+
+      const returningMock = jest.fn().mockResolvedValue([
+        {
+          id: "01TESTCAPSULEID123456789012",
+          slug: "created-slug",
+          title: "생성된 캡슐",
+          openAt: new Date("2026-12-25T12:00:00.000Z"),
+          expiresAt: new Date("2027-01-01T12:00:00.000Z"),
+          createdAt: new Date("2026-03-23T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-23T00:00:00.000Z"),
+        },
+      ]);
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
+      db.insert.mockReturnValue({ values: valuesMock });
+
+      const result = await capsulesRepository.createCapsule({
+        slug: "created-slug",
+        title: "생성된 캡슐",
+        password: "1234",
+        openAt: "2026-12-25T12:00:00.000Z",
+        reservationToken: "valid-token",
+      });
+
+      expect(result).toEqual({
+        id: "01TESTCAPSULEID123456789012",
+        slug: "created-slug",
+        title: "생성된 캡슐",
+        openAt: "2026-12-25T12:00:00.000Z",
+        expiresAt: "2027-01-01T12:00:00.000Z",
+        createdAt: "2026-03-23T00:00:00.000Z",
+        updatedAt: "2026-03-23T00:00:00.000Z",
+      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[capsules] Failed to clean up slug reservation after capsule creation.",
+        expect.any(Error),
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -464,7 +574,7 @@ describe("CapsulesRepository", () => {
       });
     });
 
-    it("메시지 insert에서 unique constraint 충돌이면 DuplicateNicknameException으로 변환한다", async () => {
+    it("Drizzle이 감싼 nickname unique constraint 충돌이면 DuplicateNicknameException으로 변환한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue({
         id: "01TESTCAPSULEID123456789012",
         openAt: FUTURE_DATE,
@@ -478,7 +588,9 @@ describe("CapsulesRepository", () => {
 
       const messageReturningMock = jest
         .fn()
-        .mockRejectedValue({ code: "23505" });
+        .mockRejectedValue(
+          buildDrizzleUniqueViolationError("messages_capsule_id_nickname_unq"),
+        );
       const messageValuesMock = jest
         .fn()
         .mockReturnValue({ returning: messageReturningMock });
@@ -499,6 +611,81 @@ describe("CapsulesRepository", () => {
           content: "메시지",
         }),
       ).rejects.toBeInstanceOf(DuplicateNicknameException);
+    });
+
+    it("다른 unique constraint 충돌이면 원본 에러를 그대로 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
+        expiresAt: FUTURE_DATE,
+      });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      const unexpectedError =
+        buildDrizzleUniqueViolationError("messages_other_unq");
+      const messageReturningMock = jest.fn().mockRejectedValue(unexpectedError);
+      const messageValuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: messageReturningMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          insert: txInsertMock,
+          update: jest.fn(),
+        }),
+      );
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "opened-capsule",
+          nickname: "중복 닉네임",
+          content: "메시지",
+        }),
+      ).rejects.toBe(unexpectedError);
+    });
+
+    it("code와 constraint가 서로 다른 error 레벨에 있으면 원본 에러를 그대로 던진다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue({
+        id: "01TESTCAPSULEID123456789012",
+        openAt: FUTURE_DATE,
+        expiresAt: FUTURE_DATE,
+      });
+      const countWhereMock = jest.fn().mockResolvedValue([{ messageCount: 0 }]);
+      const countFromMock = jest
+        .fn()
+        .mockReturnValue({ where: countWhereMock });
+      db.select.mockReturnValue({ from: countFromMock });
+
+      const layeredError = buildLayeredUniqueConstraintMismatchError(
+        "messages_capsule_id_nickname_unq",
+      );
+      const messageReturningMock = jest.fn().mockRejectedValue(layeredError);
+      const messageValuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: messageReturningMock });
+      const txInsertMock = jest
+        .fn()
+        .mockReturnValue({ values: messageValuesMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          insert: txInsertMock,
+          update: jest.fn(),
+        }),
+      );
+
+      await expect(
+        capsulesRepository.createMessage({
+          slug: "opened-capsule",
+          nickname: "중복 닉네임",
+          content: "메시지",
+        }),
+      ).rejects.toBe(layeredError);
     });
   });
 
