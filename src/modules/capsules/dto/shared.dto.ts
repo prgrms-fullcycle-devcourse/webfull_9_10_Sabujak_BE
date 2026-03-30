@@ -13,25 +13,33 @@ export const slugSchema = z
   .max(50)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   .openapi({
-  description: "사용자 노출용 slug 식별자",
-  example: capsuleMockExamples.defaultSlug,
-});
+    description: "사용자 노출용 slug 식별자",
+    example: capsuleMockExamples.defaultSlug,
+  });
 
 export const titleSchema = z.string().trim().min(1).max(100).openapi({
   example: capsuleMockExamples.defaultTitle,
 });
 
-export const passwordSchema = z.string().regex(/^\d{4}$/).openapi({
-  example: "1234",
-});
+export const passwordSchema = z
+  .string()
+  .regex(/^\d{4}$/)
+  .openapi({
+    example: "1234",
+  });
 
 export const nicknameSchema = z.string().trim().min(1).max(20).openapi({
   example: capsuleMockExamples.defaultNickname,
 });
 
-export const messageContentSchema = z.string().trim().min(1).max(1000).openapi({
-  example: capsuleMockExamples.defaultMessageContent,
-});
+export const messageContentSchema = z
+  .string()
+  .trim()
+  .min(1, "메시지는 최소 1자 이상 입력해야 합니다.")
+  .max(1000, "메시지는 최대 1000자까지 입력 가능합니다.")
+  .openapi({
+    example: capsuleMockExamples.defaultMessageContent,
+  });
 
 export const capsuleBaseResponseShape = {
   id: z.string().openapi({ example: capsuleMockExamples.capsuleId }),
