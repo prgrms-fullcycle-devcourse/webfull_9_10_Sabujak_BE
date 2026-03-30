@@ -2,7 +2,6 @@ import { asc, count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
-import { buildVerifyPasswordMock } from "../../mocks/capsule.mock";
 import {
   deleteRedisKey,
   getRedisStringValue,
@@ -35,6 +34,7 @@ const CAPSULE_OPEN_DURATION_DAYS = 7;
 const MESSAGE_LIMIT_PER_CAPSULE = 300;
 
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const PG_UNIQUE_VIOLATION_CODE = "23505";
 
 const getSlugReservationKey = (slug: string) =>
   `${SLUG_RESERVATION_KEY_PREFIX}${slug}`;
@@ -275,8 +275,29 @@ export class CapsulesRepository {
   }
 
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
-    void input;
-    return buildVerifyPasswordMock();
+    const capsule = await db.query.capsules.findFirst({
+      columns: {
+        passwordHash: true,
+      },
+      where: eq(capsules.slug, input.slug),
+    });
+
+    if (!capsule) {
+      throw new CapsuleNotFoundException();
+    }
+
+    const isPasswordValid = await verifyPasswordHash(
+      input.password,
+      capsule.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new ForbiddenPasswordException();
+    }
+
+    return {
+      verified: true,
+    };
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
@@ -374,6 +395,7 @@ export class CapsulesRepository {
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
+        openAt: true,
         expiresAt: true,
       },
       where: eq(capsules.slug, input.slug),
@@ -383,7 +405,13 @@ export class CapsulesRepository {
       throw new CapsuleNotFoundException();
     }
 
-    if (capsule.expiresAt.getTime() <= Date.now()) {
+    const now = Date.now();
+
+    if (capsule.openAt.getTime() <= now) {
+      throw new CapsuleAlreadyOpenedException();
+    }
+
+    if (capsule.expiresAt.getTime() <= now) {
       throw new CapsuleExpiredException();
     }
 
@@ -422,12 +450,17 @@ export class CapsulesRepository {
         };
       });
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === "23505"
-      ) {
+      // any 타입 사용 피하기 위한 타입 단언
+      const err = error as {
+        code?: string;
+        cause?: { code?: string };
+        error?: { code?: string };
+      };
+
+      // 원본 에러, cause 내부, error 내부 순서로 23505 중복 코드가 있는지 탐색
+      const errorCode = err?.code || err?.cause?.code || err?.error?.code;
+
+      if (errorCode === PG_UNIQUE_VIOLATION_CODE) {
         throw new DuplicateNicknameException();
       }
 
