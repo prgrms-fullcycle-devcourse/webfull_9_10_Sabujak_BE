@@ -3,7 +3,7 @@
 사부작 백엔드의 MVP 기준 REST API 명세입니다.
 
 - Base URL: `/api/v3`
-- Content-Type: `application/json`
+- 기본 Content-Type: `application/json` (`/healthCheck` 제외)
 - 시간 타입: UTC ISO 8601 문자열
 - 내부 PK: ULID
 - 사용자 노출 식별자: `slug`
@@ -19,7 +19,34 @@
 - `expiresAt`이 지난 캡슐은 만료 상태로 간주하며, 열람 및 작성 정책은 아래 엔드포인트 규칙을 따릅니다.
 - 캡슐 삭제는 Hard Delete로 처리합니다.
 
-### 1.2 Slug 예약 규칙
+### 1.2 공통 입력 검증 규칙 (Zod 기준)
+
+- `slug`
+  - 적용 위치: `POST /capsules/slug-reservations` body, `POST /capsules` body, `GET/PATCH/DELETE /capsules/{slug}` path, `POST /capsules/{slug}/verify` path, `POST /capsules/{slug}/messages` path
+  - 조건: `string`, trim 이후 `1~50자`, 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`
+  - 의미: 소문자 영문, 숫자, 단일 하이픈(`-`)만 허용하며 시작/끝 하이픈 및 연속 하이픈은 허용하지 않습니다.
+- `title`
+  - 적용 위치: `POST /capsules`, `PATCH /capsules/{slug}` body
+  - 조건: `string`, trim 이후 `1~100자`
+- `password`
+  - 적용 위치: `POST /capsules`, `POST /capsules/{slug}/verify`, `PATCH /capsules/{slug}`, `DELETE /capsules/{slug}` body
+  - 조건: `string`, 정규식 `^\d{4}$`
+  - 의미: 숫자 `4자리`만 허용합니다.
+- `openAt`
+  - 적용 위치: `POST /capsules`, `PATCH /capsules/{slug}` body
+  - 조건: `string`, Zod `datetime()` 기준의 UTC ISO 8601 일시 문자열
+- `reservationToken`
+  - 적용 위치: `POST /capsules` body
+  - 조건: `string`
+  - 비고: Zod 레벨에서는 필수 문자열까지만 검증하며, 길이/패턴 제약은 없습니다.
+- `nickname`
+  - 적용 위치: `POST /capsules/{slug}/messages` body
+  - 조건: `string`, trim 이후 `1~20자`
+- `content`
+  - 적용 위치: `POST /capsules/{slug}/messages` body
+  - 조건: `string`, trim 이후 `1~1000자`
+
+### 1.3 Slug 예약 규칙
 
 - 슬러그 확인 버튼은 예약 생성 API 하나만 사용합니다.
 - 슬러그 선점은 상태를 변경하는 동작이므로 `GET`이 아니라 `POST`를 사용합니다.
@@ -31,14 +58,14 @@
 - 생성 요청자는 `slug`와 `reservationToken`의 조합으로 선점 소유권을 증명합니다.
 - DB의 `slug` unique constraint는 동시성 문제 등 만일의 예외 상황에 대비한 최후의 방어선으로만 사용합니다.
 
-### 1.3 공개 전/후 조회 정책
+### 1.4 공개 전/후 조회 정책
 
 - 같은 캡슐 URL에 진입했을 때, `openAt` 이전이면 기본 정보 화면을 보여주고 `openAt` 이후이면 메시지 화면을 보여줍니다.
 - API 기준 메인 조회 엔드포인트는 `GET /capsules/{slug}` 하나로 정의합니다.
 - `openAt` 이전에는 캡슐 기본 정보만 반환하고 메시지 목록은 반환하지 않습니다.
 - `openAt` 이후에는 같은 응답에 메시지 목록 배열을 포함하여 반환합니다.
 
-### 1.4 메시지 조회 정책
+### 1.5 메시지 조회 정책
 
 - MVP 문서 범위에서 메시지 목록에 대한 페이지네이션은 미적용입니다.
 - 메시지 목록은 별도 `meta` 없이 단순 배열로 반환합니다.
@@ -46,7 +73,7 @@
 - 메시지 수 상한에 도달하면 원칙적으로 추가 작성을 거절합니다. (단, 동시 요청 시 301~302건 등 낙관적 예외 허용)
 - 메시지 목록은 `id ASC` 순으로 정렬합니다.
 
-### 1.5 메시지 작성 규칙
+### 1.6 메시지 작성 규칙
 
 - 같은 캡슐 내에서는 닉네임 중복을 허용하지 않습니다.
 - 닉네임은 trim 이후 `1~20자`여야 합니다.
@@ -57,28 +84,37 @@
 
 | 도메인  | 기능                 | 메서드   | URI                           | 설명                            |
 | ------- | -------------------- | -------- | ----------------------------- | ------------------------------- |
-| System  | 헬스체크             | `GET`    | `/health`                     | 서버 상태 확인                  |
-| Capsule | 슬러그 예약 생성     | `POST`   | `/capsules/slug-reservations` | 중복 확인 후 5분 예약 토큰 발급 |
-| Capsule | 캡슐 생성            | `POST`   | `/capsules`                   | 신규 타임캡슐 생성              |
-| Capsule | 캡슐 조회            | `GET`    | `/capsules/{slug}`            | 공개 전/후 화면용 통합 조회     |
+| System  | 헬스체크❤️             | `GET`    | `/healthCheck`                | 서버 상태 확인                  |
+| Capsule | 슬러그 예약 생성❤️     | `POST`   | `/capsules/slug-reservations` | 중복 확인 후 5분 예약 토큰 발급 |
+| Capsule | 캡슐 생성❤️            | `POST`   | `/capsules`                   | 신규 타임캡슐 생성              |
+| Capsule | 캡슐 조회❤️            | `GET`    | `/capsules/{slug}`            | 공개 전/후 화면용 통합 조회     |
 | Capsule | 관리자 비밀번호 확인 | `POST`   | `/capsules/{slug}/verify`     | 수정/삭제 진입용 비밀번호 검증  |
-| Capsule | 캡슐 수정            | `PATCH`  | `/capsules/{slug}`            | 비밀번호 검증 후 수정           |
-| Capsule | 캡슐 삭제            | `DELETE` | `/capsules/{slug}`            | 비밀번호 검증 후 Hard Delete    |
+| Capsule | 캡슐 수정❤️            | `PATCH`  | `/capsules/{slug}`            | 비밀번호 검증 후 수정           |
+| Capsule | 캡슐 삭제❤️            | `DELETE` | `/capsules/{slug}`            | 비밀번호 검증 후 Hard Delete    |
 | Message | 메시지 작성❤️       | `POST`   | `/capsules/{slug}/messages`   | 익명 메시지 작성                |
 
 ## 3. 엔드포인트 상세
 
 ### 3.1 헬스체크
 
-`GET /health`
+`GET /healthCheck`
 
-Response `200 OK`
+Response `200 OK` (`text/plain`)
 
-```json
-{
-  "ok": true
-}
+```text
+healthCheck: OK
 ```
+
+Response `500 Internal Server Error` (`text/plain`)
+
+```text
+healthCheck: false
+```
+
+규칙:
+
+- 이 엔드포인트는 예외적으로 JSON이 아니라 plain text를 반환합니다.
+- 입력 파라미터나 Request Body는 없습니다.
 
 ### 3.2 슬러그 예약 생성
 
@@ -106,7 +142,8 @@ Response `201 Created`
 
 - 클라이언트의 "중복 확인" 버튼은 이 API 하나만 호출합니다.
 - 서버는 요청을 받으면 다음 순서로 처리합니다.
-- `slug` 형식 검증
+- `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
 - DB에서 기존 캡슐 `slug` 중복 여부 확인
 - Redis에서 활성 예약 여부 확인
 - 사용 가능하면 Redis key `capsule:slug-reservation:{slug}`에 `SET NX EX 300`으로 선점
@@ -146,9 +183,13 @@ Response `201 Created`
 규칙:
 
 - 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 모두 반영된 '최근 활동 시각'을 의미합니다. (생성 시에는 `createdAt`과 동일)
+- `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
 - `title`은 trim 이후 `1~100자`여야 합니다.
 - `password`는 숫자 `4자리`여야 합니다. 이 값은 캡슐 관리자 비밀번호 원문 값으로, 저장 전 hash 처리합니다.
+- `openAt`은 Zod `datetime()` 기준의 UTC ISO 8601 일시 문자열이어야 합니다.
 - `reservationToken`은 필수(Required)입니다. 누락 시 `400 INVALID_INPUT`을 반환합니다.
+- `reservationToken`은 Zod 레벨에서 필수 `string`까지만 검증합니다. 길이/패턴 제약은 없습니다.
 - `reservationToken`이 Redis 예약 정보와 일치해야 합니다.
 - 예약 토큰이 만료되었거나, 정보 불일치로 예약 검증에 실패하면 `409 SLUG_RESERVATION_MISMATCH`를 반환합니다.
 - 캡슐 생성이 성공하면 해당 `slug` 의 Redis 예약 정보는 즉시 정리합니다.
@@ -207,6 +248,8 @@ Response `201 Created`
 
 규칙:
 
+- path parameter `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- path parameter `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
 - 만료 상태이면 기존 정책대로 `410 CAPSULE_EXPIRED`
 - 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 모두 반영된 '최근 활동 시각'을 의미합니다. (공개 후 응답의 `messages` 배열 포함 여부와 무관하게 캡슐의 최종 업데이트 시간을 나타냄)
 - 공개 후 응답에서 각 메시지는 `id ASC` 순으로 정렬됩니다.
@@ -234,6 +277,8 @@ Response `200 OK`
 
 규칙:
 
+- path parameter `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- path parameter `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
 - `password`는 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - 비밀번호 불일치 시 `403 FORBIDDEN_PASSWORD`
 - 동일 IP 또는 동일 `slug`에 대한 연속 실패는 rate limit 대상입니다.
@@ -256,6 +301,7 @@ Response `200 OK`
 
 ```json
 {
+  "createdAt": "2025-03-18T02:05:21.000Z",
   "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
   "slug": "our-graduation-2025",
   "title": "수정된 졸업 축하 방",
@@ -267,8 +313,12 @@ Response `200 OK`
 
 규칙:
 
-- `password`는 필수이며 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
-- 수정 가능한 필드는 `title`(trim 이후 `1~100자`), `openAt`입니다.
+- path parameter `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- path parameter `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
+- Request Body의 `password`, `title`, `openAt`은 모두 필수입니다.
+- `password`는 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
+- `title`은 trim 이후 `1~100자`여야 합니다.
+- `openAt`은 Zod `datetime()` 기준의 UTC ISO 8601 일시 문자열이어야 합니다.
 - `openAt`은 현재 시각 이후여야 합니다.
 - `openAt`이 변경되면 `expiresAt`도 즉시 재계산합니다.
 - 캡슐 내용이 수정되면 '최근 활동 시각'을 의미하는 `updatedAt`이 갱신됩니다.
@@ -291,6 +341,9 @@ Response `204 No Content`
 
 규칙:
 
+- path parameter `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- path parameter `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
+- Request Body의 `password`는 필수입니다.
 - `password`는 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - Hard Delete로 처리합니다.
 - 캡슐 삭제 시 연관 메시지는 함께 삭제됩니다.
@@ -322,6 +375,9 @@ Response `201 Created`
 규칙:
 
 - 존재하지 않거나 이미 삭제된 캡슐에는 작성할 수 없습니다.
+- path parameter `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
+- path parameter `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
+- Request Body의 `nickname`, `content`는 모두 필수입니다.
 - `nickname`은 trim 이후 `1~20자`여야 합니다.
 - `content`는 trim 이후 `1~1000자`여야 합니다.
 - 같은 캡슐 내에서 이미 사용 중인 `nickname`이면 `409 DUPLICATE_NICKNAME`
@@ -337,14 +393,22 @@ Response `201 Created`
 {
   "error": {
     "code": "INVALID_INPUT",
-    "message": "요청 값을 확인해 주세요."
+    "message": "요청 값을 확인해 주세요.",
+    "details": [
+      {
+        "field": "slug",
+        "message": "Invalid"
+      }
+    ]
   }
 }
 ```
 
+- `details`는 Zod 검증 실패 시에만 포함되는 선택 필드입니다.
+
 | 상태 코드 | 에러 코드                   | 설명                                     |
 | --------- | --------------------------- | ---------------------------------------- |
-| `400`     | `INVALID_INPUT`             | Zod 검증 실패                            |
+| `400`     | `INVALID_INPUT`             | Zod 검증 실패 (`details` 포함 가능)      |
 | `403`     | `FORBIDDEN_PASSWORD`        | 비밀번호 불일치                          |
 | `404`     | `CAPSULE_NOT_FOUND`         | 존재하지 않는 `slug`                     |
 | `409`     | `SLUG_ALREADY_IN_USE`       | 이미 사용 중이거나 현재 예약 중인 `slug` |
