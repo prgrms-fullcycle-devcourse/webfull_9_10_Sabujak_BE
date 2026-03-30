@@ -34,6 +34,7 @@ const CAPSULE_OPEN_DURATION_DAYS = 7;
 const MESSAGE_LIMIT_PER_CAPSULE = 300;
 
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const PG_UNIQUE_VIOLATION_CODE = "23505";
 
 const getSlugReservationKey = (slug: string) =>
   `${SLUG_RESERVATION_KEY_PREFIX}${slug}`;
@@ -449,17 +450,17 @@ export class CapsulesRepository {
         };
       });
     } catch (error) {
-      // any를 피하면서도 Lint를 통과하기 위해 구조적으로 안전한 커스텀 타입으로 단언(캐스팅)합니다.
+      // any 타입 사용 피하기 위한 타입 단언
       const err = error as {
         code?: string;
         cause?: { code?: string };
         error?: { code?: string };
       };
 
-      // 원본 에러, cause 내부, error 내부 순서로 23505 중복 코드가 있는지 깔끔하게 탐색합니다.
+      // 원본 에러, cause 내부, error 내부 순서로 23505 중복 코드가 있는지 탐색
       const errorCode = err?.code || err?.cause?.code || err?.error?.code;
 
-      if (errorCode === "23505") {
+      if (errorCode === PG_UNIQUE_VIOLATION_CODE) {
         throw new DuplicateNicknameException();
       }
 
