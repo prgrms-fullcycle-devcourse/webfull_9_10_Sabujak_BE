@@ -385,6 +385,7 @@ describe("CapsulesRepository", () => {
       await expect(
         capsulesRepository.getMessageCountBySlug({ slug: "opened-capsule" }),
       ).resolves.toEqual({
+        expiresAt: FUTURE_DATE.toISOString(),
         messageCount: 7,
       });
     });

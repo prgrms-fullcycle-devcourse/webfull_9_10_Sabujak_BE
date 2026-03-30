@@ -3,7 +3,10 @@ jest.mock("./capsules.service", () => ({
     createSlugReservation: jest.fn(),
     createCapsule: jest.fn(),
     getCapsule: jest.fn(),
-    getMessageCount: jest.fn().mockResolvedValue({ messageCount: 7 }),
+    getMessageCount: jest.fn().mockResolvedValue({
+      expiresAt: "2026-03-31T00:00:00.000Z",
+      messageCount: 7,
+    }),
     verifyCapsulePassword: jest.fn(),
     updateCapsule: jest.fn(),
     deleteCapsule: jest.fn(),
@@ -13,8 +16,13 @@ jest.mock("./capsules.service", () => ({
 
 import { AddressInfo } from "node:net";
 import app from "../../app";
+import { capsuleMessageCountPublisher } from "./capsule-message-count.publisher";
 
 describe("GET /capsules/:slug/message-count/stream", () => {
+  afterEach(() => {
+    capsuleMessageCountPublisher.clear();
+  });
+
   it("SSE 헤더와 초기 이벤트를 보낸다", async () => {
     const server = await new Promise<ReturnType<typeof app.listen>>(
       (resolve) => {

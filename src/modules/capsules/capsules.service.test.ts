@@ -13,6 +13,7 @@ describe("CapsulesService", () => {
   };
 
   const publisher = {
+    closeSlug: jest.fn(),
     subscribe: jest.fn(),
     publish: jest.fn(),
   };
@@ -30,7 +31,10 @@ describe("CapsulesService", () => {
       content: "메시지",
       createdAt: "2026-03-26T00:00:00.000Z",
     });
-    repository.getMessageCountBySlug.mockResolvedValue({ messageCount: 4 });
+    repository.getMessageCountBySlug.mockResolvedValue({
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      messageCount: 4,
+    });
 
     const result = await service.createMessage({
       slug: "opened-capsule",
@@ -97,5 +101,20 @@ describe("CapsulesService", () => {
 
     expect(publisher.publish).not.toHaveBeenCalled();
     expect(consoleErrorSpy).toHaveBeenCalled();
+  });
+
+  it("capsule 삭제 성공 후 해당 slug SSE subscriber를 정리한다", async () => {
+    repository.deleteCapsule.mockResolvedValue(undefined);
+
+    await service.deleteCapsule({
+      password: "secret123",
+      slug: "opened-capsule",
+    });
+
+    expect(repository.deleteCapsule).toHaveBeenCalledWith({
+      password: "secret123",
+      slug: "opened-capsule",
+    });
+    expect(publisher.closeSlug).toHaveBeenCalledWith("opened-capsule");
   });
 });
