@@ -47,12 +47,12 @@ export const streamCapsuleMessageCount = async (
   res: Response,
 ) => {
   const params = capsuleSlugParamsSchema.parse(req.params);
-  const { messageCount } = await capsulesService.getMessageCount(params);
 
+  // 초기 count 조회를 publisher 내부로 넘겨 subscribe 와 snapshot 보정을 같은 흐름에서 처리합니다.
   capsuleMessageCountPublisher.subscribe({
+    getSnapshot: () => capsulesService.getMessageCount(params),
     slug: params.slug,
     response: res,
-    initialMessageCount: messageCount,
   });
 };
 

@@ -297,6 +297,8 @@ export class CapsulesRepository {
       .where(eq(messages.capsuleId, capsule.id));
 
     return {
+      // SSE 구독 시 만료 타이머를 걸 수 있도록 현재 expiresAt 도 함께 반환합니다.
+      expiresAt: capsule.expiresAt.toISOString(),
       messageCount,
     };
   }

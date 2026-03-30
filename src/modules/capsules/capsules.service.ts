@@ -44,7 +44,9 @@ export class CapsulesService {
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
-    return this.repository.deleteCapsule(input);
+    await this.repository.deleteCapsule(input);
+    // 삭제된 capsule slug 로 유지 중인 SSE 연결도 함께 종료합니다.
+    this.messageCountPublisher.closeSlug(input.slug);
   }
 
   async createMessage(input: CreateMessageInputDto) {
