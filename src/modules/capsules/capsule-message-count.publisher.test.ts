@@ -107,6 +107,27 @@ describe("InMemoryCapsuleMessageCountPublisher", () => {
     expect(response.writes[1]).toContain('"messageCount":3');
   });
 
+  it("같은 count가 다시 publish 되면 중복 이벤트를 전송하지 않는다", async () => {
+    const response = new MockSseResponse();
+
+    publisher.subscribe({
+      getSnapshot: async () => ({
+        expiresAt: futureExpiresAt,
+        messageCount: 1,
+      }),
+      slug: "opened-capsule",
+      response: response as never,
+    });
+
+    await Promise.resolve();
+
+    publisher.publish("opened-capsule", { messageCount: 3 });
+    publisher.publish("opened-capsule", { messageCount: 3 });
+
+    expect(response.writes).toHaveLength(2);
+    expect(response.writes[1]).toContain('"messageCount":3');
+  });
+
   it("close 이벤트가 발생하면 subscriber를 정리한다", async () => {
     const response = new MockSseResponse();
 

@@ -124,8 +124,8 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
       return;
     }
 
-    // 생성 이벤트만 존재하는 현재 범위에서는 더 작은 count를 늦게 보내지 않습니다.
-    if (payload.messageCount < channel.lastDeliveredCount) {
+    // 생성 이벤트만 존재하는 현재 범위에서는 같거나 더 작은 count를 다시 보내지 않습니다.
+    if (payload.messageCount <= channel.lastDeliveredCount) {
       return;
     }
 
