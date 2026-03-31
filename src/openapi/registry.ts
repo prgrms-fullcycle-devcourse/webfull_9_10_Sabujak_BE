@@ -211,7 +211,7 @@ registry.registerPath({
   method: "get",
   path: "/capsules/{slug}/message-count/stream",
   tags: ["Capsule"],
-  summary: "messageCount SSE 구독",
+  summary: "messageCount SSE 구독❤️",
   description:
     "특정 캡슐의 최신 messageCount를 SSE로 구독합니다. 연결 직후 현재 count를 1회 전송하고 이후 변경 시마다 같은 이벤트를 push합니다.",
   request: {
