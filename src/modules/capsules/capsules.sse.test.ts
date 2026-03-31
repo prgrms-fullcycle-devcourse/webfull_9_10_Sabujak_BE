@@ -1,10 +1,13 @@
+const buildFutureExpiresAt = () =>
+  new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
 jest.mock("./capsules.service", () => ({
   capsulesService: {
     createSlugReservation: jest.fn(),
     createCapsule: jest.fn(),
     getCapsule: jest.fn(),
     getMessageCount: jest.fn().mockResolvedValue({
-      expiresAt: "2026-03-31T00:00:00.000Z",
+      expiresAt: buildFutureExpiresAt(),
       messageCount: 7,
     }),
     verifyCapsulePassword: jest.fn(),
@@ -30,7 +33,7 @@ describe("GET /capsules/:slug/message-count/stream", () => {
     capsuleMessageCountPublisher.clear();
     jest.clearAllMocks();
     mockedCapsulesService.getMessageCount.mockResolvedValue({
-      expiresAt: "2026-03-31T00:00:00.000Z",
+      expiresAt: buildFutureExpiresAt(),
       messageCount: 7,
     });
   });
