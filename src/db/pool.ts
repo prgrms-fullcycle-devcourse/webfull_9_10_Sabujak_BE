@@ -30,6 +30,9 @@ export const createPoolConfig = (env: PoolEnv = process.env): PoolConfig => {
       database: env.POSTGRES_DB,
     }),
     ssl: isProduction ? { rejectUnauthorized: false } : false,
+    max: isProduction ? 5 : 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
   };
 };
 

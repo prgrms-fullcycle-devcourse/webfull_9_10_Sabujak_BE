@@ -18,10 +18,16 @@ describe("CapsulesService", () => {
     publish: jest.fn(),
   };
 
-  const service = new CapsulesService(repository as never, publisher);
+  const ensureDatabaseReady = jest.fn().mockResolvedValue(undefined);
+  const service = new CapsulesService(
+    repository as never,
+    publisher,
+    ensureDatabaseReady,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    ensureDatabaseReady.mockResolvedValue(undefined);
   });
 
   it("메시지 생성 성공 후 최신 count를 재조회해 publish 한다", async () => {
@@ -48,6 +54,7 @@ describe("CapsulesService", () => {
       nickname: "작성자",
       content: "메시지",
     });
+    expect(ensureDatabaseReady).toHaveBeenCalledTimes(2);
     expect(repository.getMessageCountBySlug).toHaveBeenCalledWith({
       slug: "opened-capsule",
     });
@@ -69,6 +76,7 @@ describe("CapsulesService", () => {
 
     expect(repository.getMessageCountBySlug).not.toHaveBeenCalled();
     expect(publisher.publish).not.toHaveBeenCalled();
+    expect(ensureDatabaseReady).toHaveBeenCalledTimes(1);
   });
 
   it("publish 단계가 실패해도 메시지 생성 자체는 성공시킨다", async () => {
@@ -101,6 +109,7 @@ describe("CapsulesService", () => {
 
     expect(publisher.publish).not.toHaveBeenCalled();
     expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(ensureDatabaseReady).toHaveBeenCalledTimes(2);
   });
 
   it("capsule 삭제 성공 후 해당 slug SSE subscriber를 정리한다", async () => {
@@ -116,5 +125,6 @@ describe("CapsulesService", () => {
       slug: "opened-capsule",
     });
     expect(publisher.closeSlug).toHaveBeenCalledWith("opened-capsule");
+    expect(ensureDatabaseReady).toHaveBeenCalledTimes(1);
   });
 });

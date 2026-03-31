@@ -199,7 +199,6 @@ export class CapsulesRepository {
     const expiresAt = calculateExpiresAt(openAt);
     const capsuleId = generateUlid();
     const passwordHash = await hashPassword(input.password);
-
     try {
       // 예약 검증이 끝난 뒤에만 실제 캡슐을 저장하고, 응답용 메타데이터를 그대로 돌려줍니다.
       const [createdCapsule] = await db

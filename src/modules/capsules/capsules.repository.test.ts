@@ -25,6 +25,7 @@ jest.mock("../../db", () => ({
     update: jest.fn(),
     transaction: jest.fn(),
   },
+  ensureDatabaseConnection: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("../../redis", () => ({
