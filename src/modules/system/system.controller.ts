@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import pool from "../../db";
+import { ensureDatabaseConnection } from "../../db";
 import { getFormattedMemoryUsage } from "../../common/middlewares/memory-logger";
 import { openApiDocument } from "../../openapi/registry";
 import { getRedisClient, isRedisConfigured } from "../../redis";
@@ -12,7 +12,7 @@ export const helloWorld = (req: Request, res: Response) => {
 // DB 및 Redis 연결 상태 점검용 시스템 헬스체크
 export const healthCheck = async (req: Request, res: Response) => {
   try {
-    await pool.query("SELECT 1");
+    await ensureDatabaseConnection({ force: true });
     const redisClient = await getRedisClient();
 
     if (redisClient) {

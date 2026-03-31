@@ -25,6 +25,9 @@ describe("createPoolConfig", () => {
       password: "local-password",
       database: "local-db",
       ssl: false,
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
     });
   });
 
@@ -37,6 +40,9 @@ describe("createPoolConfig", () => {
     expect(createPoolConfig(env)).toEqual({
       connectionString: "postgres://user:password@host:5432/db",
       ssl: { rejectUnauthorized: false },
+      max: 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
     });
   });
 
@@ -57,6 +63,9 @@ describe("createPoolConfig", () => {
       password: "local-password",
       database: "local-db",
       ssl: false,
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
     });
   });
 });

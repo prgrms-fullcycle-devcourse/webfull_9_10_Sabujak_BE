@@ -1,6 +1,6 @@
 import { asc, count, eq } from "drizzle-orm";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
-import { db } from "../../db";
+import { db, ensureDatabaseConnection } from "../../db";
 import { capsules, messages } from "../../db/schema";
 import {
   deleteRedisKey,
@@ -147,6 +147,8 @@ const isUniqueConstraintViolation = (
 
 export class CapsulesRepository {
   async createSlugReservation(input: CreateSlugReservationInputDto) {
+    await ensureDatabaseConnection();
+
     // 최종 저장소인 DB에 이미 사용 중인 slug가 있으면 즉시 차단합니다.
     const existingCapsule = await db.query.capsules.findFirst({
       columns: { id: true },
@@ -199,6 +201,7 @@ export class CapsulesRepository {
     const expiresAt = calculateExpiresAt(openAt);
     const capsuleId = generateUlid();
     const passwordHash = await hashPassword(input.password);
+    await ensureDatabaseConnection();
 
     try {
       // 예약 검증이 끝난 뒤에만 실제 캡슐을 저장하고, 응답용 메타데이터를 그대로 돌려줍니다.
@@ -245,6 +248,8 @@ export class CapsulesRepository {
   }
 
   async getCapsule(input: GetCapsuleInputDto) {
+    await ensureDatabaseConnection();
+
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
@@ -318,6 +323,8 @@ export class CapsulesRepository {
   }
 
   async getMessageCountBySlug(input: GetCapsuleInputDto) {
+    await ensureDatabaseConnection();
+
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
@@ -347,6 +354,8 @@ export class CapsulesRepository {
   }
 
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
+    await ensureDatabaseConnection();
+
     const capsule = await db.query.capsules.findFirst({
       columns: {
         passwordHash: true,
@@ -373,6 +382,8 @@ export class CapsulesRepository {
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
+    await ensureDatabaseConnection();
+
     // 수정 전 대상 캡슐 존재 여부, 관리자 비밀번호, 공개 가능 상태를 함께 검증합니다.
     const capsule = await db.query.capsules.findFirst({
       columns: {
@@ -437,6 +448,8 @@ export class CapsulesRepository {
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
+    await ensureDatabaseConnection();
+
     // 삭제 전 slug 로 대상 캡슐과 관리자 비밀번호 hash 를 함께 확인합니다.
     const capsule = await db.query.capsules.findFirst({
       columns: {
@@ -464,6 +477,8 @@ export class CapsulesRepository {
   }
 
   async createMessage(input: CreateMessageInputDto) {
+    await ensureDatabaseConnection();
+
     const capsule = await db.query.capsules.findFirst({
       columns: {
         id: true,
