@@ -1,3 +1,4 @@
+import { ensureDatabaseConnection } from "../../db";
 import {
   CapsuleMessageCountPublisher,
   capsuleMessageCountPublisher,
@@ -17,40 +18,50 @@ export class CapsulesService {
   constructor(
     private readonly repository: CapsulesRepository,
     private readonly messageCountPublisher: CapsuleMessageCountPublisher,
+    private readonly ensureDatabaseReady: () => Promise<void> = () =>
+      ensureDatabaseConnection(),
   ) {}
 
   async createSlugReservation(input: CreateSlugReservationInputDto) {
-    return this.repository.createSlugReservation(input);
+    return this.withDatabaseReadiness(() =>
+      this.repository.createSlugReservation(input),
+    );
   }
 
   async createCapsule(input: CreateCapsuleInputDto) {
-    return this.repository.createCapsule(input);
+    return this.withDatabaseReadiness(() => this.repository.createCapsule(input));
   }
 
   async getCapsule(input: GetCapsuleInputDto) {
-    return this.repository.getCapsule(input);
+    return this.withDatabaseReadiness(() => this.repository.getCapsule(input));
   }
 
   async getMessageCount(input: GetCapsuleInputDto) {
-    return this.repository.getMessageCountBySlug(input);
+    return this.withDatabaseReadiness(() =>
+      this.repository.getMessageCountBySlug(input),
+    );
   }
 
   async verifyCapsulePassword(input: VerifyCapsulePasswordInputDto) {
-    return this.repository.verifyCapsulePassword(input);
+    return this.withDatabaseReadiness(() =>
+      this.repository.verifyCapsulePassword(input),
+    );
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
-    return this.repository.updateCapsule(input);
+    return this.withDatabaseReadiness(() => this.repository.updateCapsule(input));
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
-    await this.repository.deleteCapsule(input);
+    await this.withDatabaseReadiness(() => this.repository.deleteCapsule(input));
     // 삭제된 capsule slug 로 유지 중인 SSE 연결도 함께 종료합니다.
     this.messageCountPublisher.closeSlug(input.slug);
   }
 
   async createMessage(input: CreateMessageInputDto) {
-    const createdMessage = await this.repository.createMessage(input);
+    const createdMessage = await this.withDatabaseReadiness(() =>
+      this.repository.createMessage(input),
+    );
 
     await this.publishLatestMessageCountSafely(input.slug);
 
@@ -59,9 +70,11 @@ export class CapsulesService {
 
   private async publishLatestMessageCountSafely(slug: string) {
     try {
-      const { messageCount } = await this.repository.getMessageCountBySlug({
-        slug,
-      });
+      const { messageCount } = await this.withDatabaseReadiness(() =>
+        this.repository.getMessageCountBySlug({
+          slug,
+        }),
+      );
 
       this.messageCountPublisher.publish(slug, { messageCount });
     } catch (error) {
@@ -70,6 +83,11 @@ export class CapsulesService {
         error,
       );
     }
+  }
+
+  private async withDatabaseReadiness<T>(task: () => Promise<T>) {
+    await this.ensureDatabaseReady();
+    return task();
   }
 }
 

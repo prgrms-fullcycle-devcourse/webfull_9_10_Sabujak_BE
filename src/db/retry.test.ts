@@ -30,6 +30,7 @@ describe("isRetryableDbConnectionError", () => {
 describe("withDbConnectionRetry", () => {
   it("retries once for retryable connection errors", async () => {
     let attempts = 0;
+    const logger = jest.fn();
 
     const result = await withDbConnectionRetry(
       async () => {
@@ -43,11 +44,12 @@ describe("withDbConnectionRetry", () => {
 
         return "ok";
       },
-      { delayMs: 0 },
+      { delayMs: 0, logger },
     );
 
     expect(result).toBe("ok");
     expect(attempts).toBe(2);
+    expect(logger).toHaveBeenCalledTimes(1);
   });
 
   it("does not retry non-retryable errors", async () => {

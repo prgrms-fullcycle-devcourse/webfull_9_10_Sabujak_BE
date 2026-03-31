@@ -24,7 +24,7 @@ const RETRYABLE_DB_ERROR_MESSAGE = [
 ];
 
 const DEFAULT_RETRY_DELAY_MS = 500;
-const DEFAULT_RETRY_ATTEMPTS = 2;
+const DEFAULT_RETRY_ATTEMPTS = 5;
 const DEFAULT_READINESS_TTL_MS = 30_000;
 
 type RetryableDbError = Error & {
@@ -35,6 +35,7 @@ type RetryableDbError = Error & {
 type RetryOptions = {
   attempts?: number;
   delayMs?: number;
+  logger?: (message: string, error: Error) => void;
 };
 
 const sleep = (ms: number) =>
@@ -81,7 +82,8 @@ export const withDbConnectionRetry = async <T>(
   options: RetryOptions = {},
 ): Promise<T> => {
   const attempts = options.attempts ?? DEFAULT_RETRY_ATTEMPTS;
-  const delayMs = options.delayMs ?? DEFAULT_RETRY_DELAY_MS;
+  const baseDelayMs = options.delayMs ?? DEFAULT_RETRY_DELAY_MS;
+  const logger = options.logger ?? console.warn;
 
   let lastError: unknown;
 
@@ -94,6 +96,15 @@ export const withDbConnectionRetry = async <T>(
       if (attempt === attempts || !isRetryableDbConnectionError(error)) {
         throw error;
       }
+
+      const delayMs = baseDelayMs * 2 ** (attempt - 1);
+      const retryableError =
+        error instanceof Error ? error : new Error(String(error));
+
+      logger(
+        `[db] Retryable database connection error detected. retry=${attempt}/${attempts - 1} nextDelayMs=${delayMs}`,
+        retryableError,
+      );
 
       await sleep(delayMs);
     }
