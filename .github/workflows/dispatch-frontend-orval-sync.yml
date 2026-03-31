@@ -1,0 +1,27 @@
+name: Dispatch Frontend Orval Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - openapi.json
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: Notify frontend repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Dispatch repository event
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.FRONTEND_REPO_DISPATCH_TOKEN }}
+          repository: prgrms-fullcycle-devcourse/webfull_9_10_Sabujak_FE
+          event-type: backend-openapi-updated
+          client-payload: >-
+            {"backend_sha":"${{ github.sha }}","backend_repository":"${{ github.repository }}"}
