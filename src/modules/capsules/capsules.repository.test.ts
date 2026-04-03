@@ -139,6 +139,65 @@ describe("CapsulesRepository", () => {
     });
   });
 
+  describe("getCapsuleStats", () => {
+    it("전체 캡슐 수와 전체 메시지 수를 함께 반환한다", async () => {
+      const fromCapsulesMock = jest
+        .fn()
+        .mockResolvedValue([{ totalCapsuleCount: 12 }]);
+      const fromMessagesMock = jest
+        .fn()
+        .mockResolvedValue([{ totalMessageCount: 77 }]);
+
+      db.select
+        .mockReturnValueOnce({ from: fromCapsulesMock })
+        .mockReturnValueOnce({ from: fromMessagesMock });
+
+      await expect(capsulesRepository.getCapsuleStats()).resolves.toEqual({
+        totalCapsuleCount: 12,
+        totalMessageCount: 77,
+      });
+    });
+
+    it("두 집계 쿼리를 병렬로 요청한다", async () => {
+      let resolveCapsules!: (
+        value: Array<{ totalCapsuleCount: number }>,
+      ) => void;
+      let resolveMessages!: (
+        value: Array<{ totalMessageCount: number }>,
+      ) => void;
+
+      const capsulesPromise = new Promise<Array<{ totalCapsuleCount: number }>>(
+        (resolve) => {
+          resolveCapsules = resolve;
+        },
+      );
+      const messagesPromise = new Promise<Array<{ totalMessageCount: number }>>(
+        (resolve) => {
+          resolveMessages = resolve;
+        },
+      );
+
+      const fromCapsulesMock = jest.fn().mockReturnValue(capsulesPromise);
+      const fromMessagesMock = jest.fn().mockReturnValue(messagesPromise);
+
+      db.select
+        .mockReturnValueOnce({ from: fromCapsulesMock })
+        .mockReturnValueOnce({ from: fromMessagesMock });
+
+      const statsPromise = capsulesRepository.getCapsuleStats();
+
+      expect(db.select).toHaveBeenCalledTimes(2);
+
+      resolveCapsules([{ totalCapsuleCount: 12 }]);
+      resolveMessages([{ totalMessageCount: 77 }]);
+
+      await expect(statsPromise).resolves.toEqual({
+        totalCapsuleCount: 12,
+        totalMessageCount: 77,
+      });
+    });
+  });
+
   describe("createCapsule", () => {
     it("예약 토큰이 없으면 SlugReservationMismatchException을 던진다", async () => {
       getRedisStringValue.mockResolvedValue(null);

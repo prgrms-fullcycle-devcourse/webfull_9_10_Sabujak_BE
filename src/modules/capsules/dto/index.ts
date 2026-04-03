@@ -8,3 +8,4 @@ export * from "./update-capsule.dto";
 export * from "./delete-capsule.dto";
 export * from "./create-message.dto";
 export * from "./message-count-stream.dto";
+export * from "./capsule-stats.dto";

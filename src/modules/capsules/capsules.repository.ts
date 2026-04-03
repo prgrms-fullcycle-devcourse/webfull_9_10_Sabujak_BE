@@ -146,6 +146,19 @@ const isUniqueConstraintViolation = (
 };
 
 export class CapsulesRepository {
+  async getCapsuleStats() {
+    const [[{ totalCapsuleCount }], [{ totalMessageCount }]] =
+      await Promise.all([
+        db.select({ totalCapsuleCount: count() }).from(capsules),
+        db.select({ totalMessageCount: count() }).from(messages),
+      ]);
+
+    return {
+      totalCapsuleCount,
+      totalMessageCount,
+    };
+  }
+
   async createSlugReservation(input: CreateSlugReservationInputDto) {
     // 최종 저장소인 DB에 이미 사용 중인 slug가 있으면 즉시 차단합니다.
     const existingCapsule = await db.query.capsules.findFirst({

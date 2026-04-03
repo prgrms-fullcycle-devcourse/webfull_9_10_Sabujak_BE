@@ -3,6 +3,10 @@ import {
   CapsuleMessageCountPublisher,
   capsuleMessageCountPublisher,
 } from "./capsule-message-count.publisher";
+import {
+  CapsuleStatsPublisher,
+  capsuleStatsPublisher,
+} from "./capsule-stats.publisher";
 import { capsulesRepository, CapsulesRepository } from "./capsules.repository";
 import {
   CreateCapsuleInputDto,
@@ -18,6 +22,7 @@ export class CapsulesService {
   constructor(
     private readonly repository: CapsulesRepository,
     private readonly messageCountPublisher: CapsuleMessageCountPublisher,
+    private readonly statsPublisher: CapsuleStatsPublisher,
     private readonly ensureDatabaseReady: () => Promise<void> = () =>
       ensureDatabaseConnection(),
   ) {}
@@ -29,11 +34,19 @@ export class CapsulesService {
   }
 
   async createCapsule(input: CreateCapsuleInputDto) {
-    return this.withDatabaseReadiness(() => this.repository.createCapsule(input));
+    const createdCapsule = await this.withDatabaseReadiness(() =>
+      this.repository.createCapsule(input),
+    );
+    void this.publishCapsuleStatsSafely();
+    return createdCapsule;
   }
 
   async getCapsule(input: GetCapsuleInputDto) {
     return this.withDatabaseReadiness(() => this.repository.getCapsule(input));
+  }
+
+  async getCapsuleStats() {
+    return this.withDatabaseReadiness(() => this.repository.getCapsuleStats());
   }
 
   async getMessageCount(input: GetCapsuleInputDto) {
@@ -49,13 +62,18 @@ export class CapsulesService {
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
-    return this.withDatabaseReadiness(() => this.repository.updateCapsule(input));
+    return this.withDatabaseReadiness(() =>
+      this.repository.updateCapsule(input),
+    );
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
-    await this.withDatabaseReadiness(() => this.repository.deleteCapsule(input));
+    await this.withDatabaseReadiness(() =>
+      this.repository.deleteCapsule(input),
+    );
     // 삭제된 capsule slug 로 유지 중인 SSE 연결도 함께 종료합니다.
     this.messageCountPublisher.closeSlug(input.slug);
+    void this.publishCapsuleStatsSafely();
   }
 
   async createMessage(input: CreateMessageInputDto) {
@@ -63,7 +81,8 @@ export class CapsulesService {
       this.repository.createMessage(input),
     );
 
-    await this.publishLatestMessageCountSafely(input.slug);
+    void this.publishLatestMessageCountSafely(input.slug);
+    void this.publishCapsuleStatsSafely();
 
     return createdMessage;
   }
@@ -89,9 +108,21 @@ export class CapsulesService {
     await this.ensureDatabaseReady();
     return task();
   }
+
+  private async publishCapsuleStatsSafely() {
+    try {
+      const stats = await this.withDatabaseReadiness(() =>
+        this.repository.getCapsuleStats(),
+      );
+      this.statsPublisher.publish(stats);
+    } catch (error) {
+      console.error("[capsules] Failed to publish capsuleStats update.", error);
+    }
+  }
 }
 
 export const capsulesService = new CapsulesService(
   capsulesRepository,
   capsuleMessageCountPublisher,
+  capsuleStatsPublisher,
 );
