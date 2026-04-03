@@ -37,7 +37,7 @@ export class CapsulesService {
     const createdCapsule = await this.withDatabaseReadiness(() =>
       this.repository.createCapsule(input),
     );
-    await this.publishCapsuleStatsSafely();
+    void this.publishCapsuleStatsSafely();
     return createdCapsule;
   }
 
@@ -62,14 +62,18 @@ export class CapsulesService {
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
-    return this.withDatabaseReadiness(() => this.repository.updateCapsule(input));
+    return this.withDatabaseReadiness(() =>
+      this.repository.updateCapsule(input),
+    );
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
-    await this.withDatabaseReadiness(() => this.repository.deleteCapsule(input));
+    await this.withDatabaseReadiness(() =>
+      this.repository.deleteCapsule(input),
+    );
     // 삭제된 capsule slug 로 유지 중인 SSE 연결도 함께 종료합니다.
     this.messageCountPublisher.closeSlug(input.slug);
-    await this.publishCapsuleStatsSafely();
+    void this.publishCapsuleStatsSafely();
   }
 
   async createMessage(input: CreateMessageInputDto) {
@@ -77,8 +81,8 @@ export class CapsulesService {
       this.repository.createMessage(input),
     );
 
-    await this.publishLatestMessageCountSafely(input.slug);
-    await this.publishCapsuleStatsSafely();
+    void this.publishLatestMessageCountSafely(input.slug);
+    void this.publishCapsuleStatsSafely();
 
     return createdMessage;
   }

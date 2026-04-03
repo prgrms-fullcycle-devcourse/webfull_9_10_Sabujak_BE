@@ -32,6 +32,7 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
   private readonly subscribers = new Set<CapsuleStatsSubscriber>();
   private nextSubscriberId = 1;
   private lastDeliveredPayload: CapsuleStatsPayload | null = null;
+  private lastDeliveredVersion = 0;
 
   async subscribe({ response, getSnapshot }: SubscribeInput) {
     const subscriber: CapsuleStatsSubscriber = {
@@ -42,9 +43,6 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
     };
     this.nextSubscriberId += 1;
 
-    const handleClose = () => cleanup();
-    response.on("close", handleClose);
-
     const cleanup = () => {
       response.off("close", handleClose);
       this.subscribers.forEach((candidate) => {
@@ -53,8 +51,13 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
         }
       });
     };
+    subscriber.cleanup = cleanup;
+
+    const handleClose = () => subscriber.cleanup();
+    response.on("close", handleClose);
 
     this.subscribers.add(subscriber);
+    const initialVersion = this.lastDeliveredVersion;
 
     try {
       const snapshot = await getSnapshot();
@@ -79,11 +82,11 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
       };
 
       subscriber.cleanup = release;
-      this.initializeSubscriber(subscriber, snapshot);
+      this.initializeSubscriber(subscriber, snapshot, initialVersion);
 
       return release;
     } catch (error) {
-      cleanup();
+      subscriber.cleanup();
       throw error;
     }
   }
@@ -96,13 +99,15 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
 
     if (
       this.lastDeliveredPayload &&
-      this.lastDeliveredPayload.totalCapsuleCount === payload.totalCapsuleCount &&
+      this.lastDeliveredPayload.totalCapsuleCount ===
+        payload.totalCapsuleCount &&
       this.lastDeliveredPayload.totalMessageCount === payload.totalMessageCount
     ) {
       return;
     }
 
     this.lastDeliveredPayload = payload;
+    this.lastDeliveredVersion += 1;
     const event = formatSseEvent("capsuleStats", payload);
 
     Array.from(this.subscribers).forEach((subscriber) => {
@@ -113,7 +118,10 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
       try {
         subscriber.response.write(event);
       } catch (error) {
-        console.error("[capsules] Failed to write capsuleStats SSE event.", error);
+        console.error(
+          "[capsules] Failed to write capsuleStats SSE event.",
+          error,
+        );
         subscriber.cleanup();
       }
     });
@@ -129,14 +137,23 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
   private initializeSubscriber(
     subscriber: CapsuleStatsSubscriber,
     snapshot: CapsuleStatsPayload,
+    initialVersion: number,
   ) {
     if (!this.subscribers.has(subscriber)) {
       return;
     }
 
-    this.lastDeliveredPayload = snapshot;
     subscriber.initialized = true;
-    subscriber.response.write(formatSseEvent("capsuleStats", snapshot));
+    const initialPayload =
+      this.lastDeliveredVersion === initialVersion || !this.lastDeliveredPayload
+        ? snapshot
+        : this.lastDeliveredPayload;
+
+    subscriber.response.write(formatSseEvent("capsuleStats", initialPayload));
+  }
+
+  getSubscriberCount() {
+    return this.subscribers.size;
   }
 }
 

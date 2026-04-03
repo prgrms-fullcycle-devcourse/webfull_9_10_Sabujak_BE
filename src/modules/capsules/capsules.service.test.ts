@@ -1,6 +1,11 @@
 import { CapsulesService } from "./capsules.service";
 
 describe("CapsulesService", () => {
+  const flushAsyncTasks = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  };
+
   const repository = {
     createSlugReservation: jest.fn(),
     createCapsule: jest.fn(),
@@ -59,6 +64,7 @@ describe("CapsulesService", () => {
       nickname: "작성자",
       content: "메시지",
     });
+    await flushAsyncTasks();
 
     expect(result.id).toBe(13);
     expect(repository.createMessage).toHaveBeenCalledWith({
@@ -89,6 +95,7 @@ describe("CapsulesService", () => {
         content: "메시지",
       }),
     ).rejects.toThrow("insert failed");
+    await flushAsyncTasks();
 
     expect(repository.getMessageCountBySlug).not.toHaveBeenCalled();
     expect(publisher.publish).not.toHaveBeenCalled();
@@ -127,6 +134,7 @@ describe("CapsulesService", () => {
       content: "메시지",
       createdAt: "2026-03-26T00:00:00.000Z",
     });
+    await flushAsyncTasks();
 
     expect(publisher.publish).not.toHaveBeenCalled();
     expect(statsPublisher.publish).toHaveBeenCalledWith({
@@ -148,6 +156,7 @@ describe("CapsulesService", () => {
       password: "secret123",
       slug: "opened-capsule",
     });
+    await flushAsyncTasks();
 
     expect(repository.deleteCapsule).toHaveBeenCalledWith({
       password: "secret123",
@@ -183,6 +192,7 @@ describe("CapsulesService", () => {
       openAt: "2026-04-03T00:00:00.000Z",
       reservationToken: "token",
     });
+    await flushAsyncTasks();
 
     expect(result.slug).toBe("new-capsule");
     expect(statsPublisher.publish).toHaveBeenCalledWith({
@@ -190,5 +200,44 @@ describe("CapsulesService", () => {
       totalMessageCount: 44,
     });
     expect(ensureDatabaseReady).toHaveBeenCalledTimes(2);
+  });
+
+  it("전역 집계 publish 실패가 발생해도 본 요청 응답은 성공시킨다", async () => {
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    repository.createCapsule.mockResolvedValue({
+      id: "01TESTCAPSULEID123456789012",
+      slug: "new-capsule",
+      title: "새 캡슐",
+      openAt: "2026-04-03T00:00:00.000Z",
+      expiresAt: "2026-04-10T00:00:00.000Z",
+      createdAt: "2026-04-03T00:00:00.000Z",
+      updatedAt: "2026-04-03T00:00:00.000Z",
+    });
+    repository.getCapsuleStats.mockRejectedValue(new Error("stats failed"));
+
+    await expect(
+      service.createCapsule({
+        slug: "new-capsule",
+        title: "새 캡슐",
+        password: "1234",
+        openAt: "2026-04-03T00:00:00.000Z",
+        reservationToken: "token",
+      }),
+    ).resolves.toEqual({
+      id: "01TESTCAPSULEID123456789012",
+      slug: "new-capsule",
+      title: "새 캡슐",
+      openAt: "2026-04-03T00:00:00.000Z",
+      expiresAt: "2026-04-10T00:00:00.000Z",
+      createdAt: "2026-04-03T00:00:00.000Z",
+      updatedAt: "2026-04-03T00:00:00.000Z",
+    });
+    await flushAsyncTasks();
+
+    expect(statsPublisher.publish).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 });

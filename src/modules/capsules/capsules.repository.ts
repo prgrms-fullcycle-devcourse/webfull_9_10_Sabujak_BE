@@ -147,12 +147,11 @@ const isUniqueConstraintViolation = (
 
 export class CapsulesRepository {
   async getCapsuleStats() {
-    const [{ totalCapsuleCount }] = await db
-      .select({ totalCapsuleCount: count() })
-      .from(capsules);
-    const [{ totalMessageCount }] = await db
-      .select({ totalMessageCount: count() })
-      .from(messages);
+    const [[{ totalCapsuleCount }], [{ totalMessageCount }]] =
+      await Promise.all([
+        db.select({ totalCapsuleCount: count() }).from(capsules),
+        db.select({ totalMessageCount: count() }).from(messages),
+      ]);
 
     return {
       totalCapsuleCount,

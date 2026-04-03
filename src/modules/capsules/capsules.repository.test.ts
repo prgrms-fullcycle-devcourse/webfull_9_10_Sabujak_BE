@@ -157,6 +157,45 @@ describe("CapsulesRepository", () => {
         totalMessageCount: 77,
       });
     });
+
+    it("두 집계 쿼리를 병렬로 요청한다", async () => {
+      let resolveCapsules!: (
+        value: Array<{ totalCapsuleCount: number }>,
+      ) => void;
+      let resolveMessages!: (
+        value: Array<{ totalMessageCount: number }>,
+      ) => void;
+
+      const capsulesPromise = new Promise<Array<{ totalCapsuleCount: number }>>(
+        (resolve) => {
+          resolveCapsules = resolve;
+        },
+      );
+      const messagesPromise = new Promise<Array<{ totalMessageCount: number }>>(
+        (resolve) => {
+          resolveMessages = resolve;
+        },
+      );
+
+      const fromCapsulesMock = jest.fn().mockReturnValue(capsulesPromise);
+      const fromMessagesMock = jest.fn().mockReturnValue(messagesPromise);
+
+      db.select
+        .mockReturnValueOnce({ from: fromCapsulesMock })
+        .mockReturnValueOnce({ from: fromMessagesMock });
+
+      const statsPromise = capsulesRepository.getCapsuleStats();
+
+      expect(db.select).toHaveBeenCalledTimes(2);
+
+      resolveCapsules([{ totalCapsuleCount: 12 }]);
+      resolveMessages([{ totalMessageCount: 77 }]);
+
+      await expect(statsPromise).resolves.toEqual({
+        totalCapsuleCount: 12,
+        totalMessageCount: 77,
+      });
+    });
   });
 
   describe("createCapsule", () => {
