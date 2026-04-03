@@ -139,6 +139,26 @@ describe("CapsulesRepository", () => {
     });
   });
 
+  describe("getCapsuleStats", () => {
+    it("전체 캡슐 수와 전체 메시지 수를 함께 반환한다", async () => {
+      const fromCapsulesMock = jest
+        .fn()
+        .mockResolvedValue([{ totalCapsuleCount: 12 }]);
+      const fromMessagesMock = jest
+        .fn()
+        .mockResolvedValue([{ totalMessageCount: 77 }]);
+
+      db.select
+        .mockReturnValueOnce({ from: fromCapsulesMock })
+        .mockReturnValueOnce({ from: fromMessagesMock });
+
+      await expect(capsulesRepository.getCapsuleStats()).resolves.toEqual({
+        totalCapsuleCount: 12,
+        totalMessageCount: 77,
+      });
+    });
+  });
+
   describe("createCapsule", () => {
     it("예약 토큰이 없으면 SlugReservationMismatchException을 던진다", async () => {
       getRedisStringValue.mockResolvedValue(null);

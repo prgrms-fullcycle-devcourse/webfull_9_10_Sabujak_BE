@@ -5,6 +5,8 @@ import {
 import { errorResponseSchema } from "../common/dto/error-response.dto";
 import { capsuleMockExamples } from "../mocks/capsule.mock";
 import {
+  capsuleStatsResponseSchema,
+  capsuleStatsStreamResponseSchema,
   capsuleDetailResponseSchema,
   capsuleSlugParamsSchema,
   createCapsuleBodySchema,
@@ -140,6 +142,46 @@ registry.registerPath({
       "SLUG_RESERVATION_MISMATCH",
       "SLUG_ALREADY_IN_USE",
     ),
+    500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/capsules/stats",
+  tags: ["Capsule"],
+  summary: "랜딩페이지 전역 집계 조회❤️",
+  description:
+    "랜딩페이지에서 사용하는 전체 타임캡슐 수와 전체 메시지 수를 조회합니다.",
+  responses: {
+    200: {
+      description: "전역 집계 조회 성공",
+      content: {
+        "application/json": {
+          schema: capsuleStatsResponseSchema,
+        },
+      },
+    },
+    500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/capsules/stats/stream",
+  tags: ["Capsule"],
+  summary: "랜딩페이지 전역 집계 SSE 구독❤️",
+  description:
+    "전체 타임캡슐 수와 전체 메시지 수를 SSE로 구독합니다. 연결 직후 현재 집계를 1회 전송하고 이후 변경 시마다 최신 집계를 push 합니다.",
+  responses: {
+    200: {
+      description: "전역 집계 SSE 연결 성공",
+      content: {
+        "text/event-stream": {
+          schema: capsuleStatsStreamResponseSchema,
+        },
+      },
+    },
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },
 });

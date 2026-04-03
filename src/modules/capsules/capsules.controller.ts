@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import { capsuleMessageCountPublisher } from "./capsule-message-count.publisher";
+import { capsuleStatsPublisher } from "./capsule-stats.publisher";
 import { capsulesService } from "./capsules.service";
 import {
+  capsuleStatsResponseSchema,
   capsuleSlugParamsSchema,
   capsuleDetailResponseSchema,
   createCapsuleBodySchema,
@@ -39,6 +41,20 @@ export const getCapsule = async (req: Request, res: Response) => {
     capsuleSlugParamsSchema.parse(req.params),
   );
   res.status(200).json(capsuleDetailResponseSchema.parse(payload));
+};
+
+// 랜딩페이지 전역 집계 조회
+export const getCapsuleStats = async (_req: Request, res: Response) => {
+  const payload = await capsulesService.getCapsuleStats();
+  res.status(200).json(capsuleStatsResponseSchema.parse(payload));
+};
+
+// 랜딩페이지 전역 집계 SSE 구독 연결
+export const streamCapsuleStats = async (_req: Request, res: Response) => {
+  await capsuleStatsPublisher.subscribe({
+    getSnapshot: () => capsulesService.getCapsuleStats(),
+    response: res,
+  });
 };
 
 // messageCount 전용 SSE 구독 연결
