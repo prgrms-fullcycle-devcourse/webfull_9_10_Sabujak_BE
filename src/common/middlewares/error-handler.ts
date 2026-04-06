@@ -45,10 +45,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     extra: {
       "메서드(Method)": req.method,
       "요청 주소(URL)": req.originalUrl,
-      "전달된 데이터(Body)": req.body, // 핵심
       "쿼리 스트링(Query)": req.query,
-      "요청 헤더(Headers)": req.headers,
-      "사용자 IP 정보": req.ip,
     },
   });
 
