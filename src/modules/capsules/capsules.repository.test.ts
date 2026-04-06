@@ -29,9 +29,10 @@ jest.mock("../../db", () => ({
 }));
 
 jest.mock("../../redis", () => ({
+  addRedisSetMembers: jest.fn(),
+  getRedisSetMembers: jest.fn(),
   getRedisStringValue: jest.fn(),
   setRedisStringIfAbsent: jest.fn(),
-  setRedisStringValue: jest.fn(),
   deleteRedisKey: jest.fn(),
 }));
 
@@ -51,14 +52,16 @@ const { db } = jest.requireMock("../../db") as {
 };
 
 const {
+  addRedisSetMembers,
+  getRedisSetMembers,
   getRedisStringValue,
   setRedisStringIfAbsent,
-  setRedisStringValue,
   deleteRedisKey,
 } = jest.requireMock("../../redis") as {
+  addRedisSetMembers: jest.Mock;
+  getRedisSetMembers: jest.Mock;
   getRedisStringValue: jest.Mock;
   setRedisStringIfAbsent: jest.Mock;
-  setRedisStringValue: jest.Mock;
   deleteRedisKey: jest.Mock;
 };
 
@@ -102,6 +105,7 @@ describe("CapsulesRepository", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    getRedisSetMembers.mockResolvedValue([]);
   });
 
   describe("createSlugReservation", () => {
@@ -126,11 +130,9 @@ describe("CapsulesRepository", () => {
 
     it("사용 가능한 slug면 reservationSessionToken과 reservationToken을 함께 반환한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue(null);
-      getRedisStringValue
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null);
+      getRedisStringValue.mockResolvedValueOnce(null);
       setRedisStringIfAbsent.mockResolvedValue(true);
-      setRedisStringValue.mockResolvedValue(undefined);
+      addRedisSetMembers.mockResolvedValue(undefined);
 
       const result = await capsulesRepository.createSlugReservation({
         slug: "available-slug",
@@ -150,9 +152,9 @@ describe("CapsulesRepository", () => {
         }),
         300,
       );
-      expect(setRedisStringValue).toHaveBeenCalledWith(
+      expect(addRedisSetMembers).toHaveBeenCalledWith(
         `capsule:slug-reservation-session:${result.reservationSessionToken}`,
-        JSON.stringify(["available-slug"]),
+        ["available-slug"],
         300,
       );
     });
@@ -169,11 +171,9 @@ describe("CapsulesRepository", () => {
 
     it("같은 세션으로 새 slug를 선점하면 세션 목록에 후보 slug를 추가한다", async () => {
       db.query.capsules.findFirst.mockResolvedValue(null);
-      getRedisStringValue
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(JSON.stringify(["aa"]));
+      getRedisStringValue.mockResolvedValueOnce(null);
       setRedisStringIfAbsent.mockResolvedValue(true);
-      setRedisStringValue.mockResolvedValue(undefined);
+      addRedisSetMembers.mockResolvedValue(undefined);
 
       const result = await capsulesRepository.createSlugReservation({
         slug: "bb",
@@ -181,9 +181,9 @@ describe("CapsulesRepository", () => {
       });
 
       expect(result.reservationSessionToken).toBe("session-a");
-      expect(setRedisStringValue).toHaveBeenCalledWith(
+      expect(addRedisSetMembers).toHaveBeenCalledWith(
         "capsule:slug-reservation-session:session-a",
-        JSON.stringify(["aa", "bb"]),
+        ["bb"],
         300,
       );
     });
@@ -280,11 +280,10 @@ describe("CapsulesRepository", () => {
     });
 
     it("정상 토큰이면 expiresAt을 계산해 저장하고 같은 세션 후보 slug를 함께 정리한다", async () => {
-      getRedisStringValue
-        .mockResolvedValueOnce(
-          buildSlugReservationRecord("valid-token", "session-a"),
-        )
-        .mockResolvedValueOnce(JSON.stringify(["created-slug", "other-slug"]));
+      getRedisStringValue.mockResolvedValueOnce(
+        buildSlugReservationRecord("valid-token", "session-a"),
+      );
+      getRedisSetMembers.mockResolvedValueOnce(["created-slug", "other-slug"]);
 
       const returningMock = jest.fn().mockResolvedValue([
         {
@@ -339,6 +338,46 @@ describe("CapsulesRepository", () => {
         createdAt: "2026-03-23T00:00:00.000Z",
         updatedAt: "2026-03-23T00:00:00.000Z",
       });
+    });
+
+    it("세션 set이 비어 있어도 구버전 JSON 목록이 남아 있으면 fallback으로 함께 정리한다", async () => {
+      getRedisStringValue
+        .mockResolvedValueOnce(
+          buildSlugReservationRecord("valid-token", "session-a"),
+        )
+        .mockResolvedValueOnce(JSON.stringify(["created-slug", "legacy-slug"]));
+      getRedisSetMembers.mockResolvedValueOnce([]);
+
+      const returningMock = jest.fn().mockResolvedValue([
+        {
+          id: "01TESTCAPSULEID123456789012",
+          slug: "created-slug",
+          title: "생성된 캡슐",
+          openAt: new Date("2026-12-25T12:00:00.000Z"),
+          expiresAt: new Date("2027-01-01T12:00:00.000Z"),
+          createdAt: new Date("2026-03-23T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-23T00:00:00.000Z"),
+        },
+      ]);
+      const valuesMock = jest
+        .fn()
+        .mockReturnValue({ returning: returningMock });
+      db.insert.mockReturnValue({ values: valuesMock });
+
+      await capsulesRepository.createCapsule({
+        slug: "created-slug",
+        title: "생성된 캡슐",
+        password: "1234",
+        openAt: "2026-12-25T12:00:00.000Z",
+        reservationToken: "valid-token",
+      });
+
+      expect(deleteRedisKey).toHaveBeenCalledWith(
+        "capsule:slug-reservation:legacy-slug",
+      );
+      expect(deleteRedisKey).toHaveBeenCalledWith(
+        "capsule:slug-reservation-session:session-a",
+      );
     });
 
     it("Drizzle이 감싼 slug unique constraint 충돌이면 SlugAlreadyInUseException으로 변환한다", async () => {

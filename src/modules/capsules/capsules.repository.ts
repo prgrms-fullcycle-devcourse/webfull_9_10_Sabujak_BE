@@ -3,10 +3,11 @@ import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
 import {
+  addRedisSetMembers,
   deleteRedisKey,
+  getRedisSetMembers,
   getRedisStringValue,
   setRedisStringIfAbsent,
-  setRedisStringValue,
 } from "../../redis";
 import {
   CapsuleExpiredException,
@@ -100,6 +101,21 @@ const parseSessionReservationSlugs = (value: string | null): string[] => {
   } catch {
     return [];
   }
+};
+
+const getSessionReservationSlugs = async (
+  reservationSessionKey: string,
+): Promise<string[]> => {
+  const reservedSlugs = await getRedisSetMembers(reservationSessionKey);
+
+  if (reservedSlugs.length > 0) {
+    return reservedSlugs;
+  }
+
+  // string 기반 구 예약 데이터가 남아 있을 수 있어 cleanup 시 한 번 더 호환 처리합니다.
+  return parseSessionReservationSlugs(
+    await getRedisStringValue(reservationSessionKey),
+  );
 };
 
 const encodeBase32 = (value: number, length: number) => {
@@ -261,17 +277,9 @@ export class CapsulesRepository {
     );
 
     try {
-      const reservedSlugs = parseSessionReservationSlugs(
-        await getRedisStringValue(reservationSessionKey),
-      );
-
-      if (!reservedSlugs.includes(input.slug)) {
-        reservedSlugs.push(input.slug);
-      }
-
-      await setRedisStringValue(
+      await addRedisSetMembers(
         reservationSessionKey,
-        JSON.stringify(reservedSlugs),
+        [input.slug],
         SLUG_RESERVATION_TTL_SECONDS,
       );
     } catch (error) {
@@ -347,14 +355,14 @@ export class CapsulesRepository {
           const reservationSessionKey = getSlugReservationSessionKey(
             reservation.reservationSessionToken,
           );
-          const reservedSlugs = parseSessionReservationSlugs(
-            await getRedisStringValue(reservationSessionKey),
+          const reservedSlugs = await getSessionReservationSlugs(
+            reservationSessionKey,
           );
 
           await Promise.all(
             reservedSlugs
-              .filter((reservedSlug) => reservedSlug !== input.slug)
-              .map((reservedSlug) =>
+              .filter((reservedSlug: string) => reservedSlug !== input.slug)
+              .map((reservedSlug: string) =>
                 deleteRedisKey(getSlugReservationKey(reservedSlug)),
               ),
           );
