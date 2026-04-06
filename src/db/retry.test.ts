@@ -25,6 +25,13 @@ describe("isRetryableDbConnectionError", () => {
       false,
     );
   });
+
+  it("does not treat ENOTFOUND as retryable", () => {
+    const error = new Error("getaddrinfo ENOTFOUND db");
+    Object.assign(error, { code: "ENOTFOUND" });
+
+    expect(isRetryableDbConnectionError(error)).toBe(false);
+  });
 });
 
 describe("withDbConnectionRetry", () => {

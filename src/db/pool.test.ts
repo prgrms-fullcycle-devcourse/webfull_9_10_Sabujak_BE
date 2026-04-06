@@ -1,5 +1,13 @@
 import { EventEmitter } from "node:events";
-import { bindPoolErrorHandler, createPoolConfig, poolErrorMessage } from "./pool";
+import {
+  bindPoolErrorHandler,
+  createPoolConfig,
+  createPoolDiagnostics,
+  formatPoolInitializationLog,
+  logPoolInitialization,
+  poolErrorMessage,
+  productionDatabaseUrlRequiredMessage,
+} from "./pool";
 
 class PoolStub extends EventEmitter {
   override on(event: "error", listener: (error: Error) => void) {
@@ -46,6 +54,14 @@ describe("createPoolConfig", () => {
     });
   });
 
+  it("fails fast in production when DATABASE_URL is missing", () => {
+    expect(() =>
+      createPoolConfig({
+        NODE_ENV: "production",
+      }),
+    ).toThrow(productionDatabaseUrlRequiredMessage);
+  });
+
   it("treats a blank DATABASE_URL as missing", () => {
     const env = {
       NODE_ENV: "development",
@@ -67,6 +83,66 @@ describe("createPoolConfig", () => {
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
     });
+  });
+
+  it("fails fast in production when DATABASE_URL is blank", () => {
+    expect(() =>
+      createPoolConfig({
+        NODE_ENV: "production",
+        DATABASE_URL: "   ",
+      }),
+    ).toThrow(productionDatabaseUrlRequiredMessage);
+  });
+});
+
+describe("createPoolDiagnostics", () => {
+  it("reports the DATABASE_URL host without exposing credentials", () => {
+    expect(
+      createPoolDiagnostics({
+        NODE_ENV: "production",
+        DATABASE_URL:
+          "postgres://user:password@ep-cool-glade.ap-southeast-1.aws.neon.tech:5432/app?sslmode=require",
+      }),
+    ).toEqual({
+      environment: "production",
+      source: "database_url",
+      host: "ep-cool-glade.ap-southeast-1.aws.neon.tech",
+      ssl: "enabled",
+      maxConnections: 5,
+    });
+  });
+});
+
+describe("logPoolInitialization", () => {
+  it("logs whether the pool uses the local fallback", () => {
+    const logger = jest.fn();
+
+    logPoolInitialization(
+      createPoolDiagnostics({
+        NODE_ENV: "development",
+        POSTGRES_USER: "local-user",
+        POSTGRES_PASSWORD: "local-password",
+        POSTGRES_DB: "local-db",
+      }),
+      logger,
+    );
+
+    expect(logger).toHaveBeenCalledWith(
+      "[db] Initializing PostgreSQL pool. env=development source=local_fallback host=db ssl=disabled max=10",
+    );
+  });
+
+  it("formats diagnostics for DATABASE_URL based connections", () => {
+    expect(
+      formatPoolInitializationLog(
+        createPoolDiagnostics({
+          NODE_ENV: "production",
+          DATABASE_URL: "postgres://user:password@host:5432/db",
+        }),
+      ),
+    ).toBe(
+      "[db] Initializing PostgreSQL pool. env=production source=database_url host=host ssl=enabled max=5",
+    );
   });
 });
 
