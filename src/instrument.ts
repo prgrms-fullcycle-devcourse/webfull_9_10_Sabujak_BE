@@ -8,7 +8,7 @@ interface SentryExtendedError extends Error {
 }
 
 Sentry.init({
-  dsn: "https://2861c2a072eee50f5286bbf76d79d76f@o4511171686563840.ingest.us.sentry.io/4511171821371392", // .env 파일에 설정한 DSN (직접 문자열로 넣어도 됩니다)
+  dsn: process.env.SENTRY_DSN, // .env 파일에 설정한 DSN (직접 문자열로 넣어도 됩니다)
   environment: process.env.NODE_ENV || "development",
   integrations: [nodeProfilingIntegration()],
 
