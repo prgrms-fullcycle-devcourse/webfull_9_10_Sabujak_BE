@@ -4,6 +4,7 @@ const MOCK_EXPIRES_AT = "2026-01-01T12:00:00.000Z";
 const MOCK_OPENED_UPDATED_AT = "2025-06-01T10:00:00.000Z";
 const MOCK_RESERVED_UNTIL = "2026-03-18T02:10:21.000Z";
 const MOCK_RESERVATION_TOKEN = "01HQX7Y8J6R8J2E5W4C2R9A1BC";
+const MOCK_RESERVATION_SESSION_TOKEN = "01HQX7Y8J6R8J2E5W4C2R9A1ZZ";
 const MOCK_CAPSULE_ID = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
 
 const getStringValue = (value: unknown, fallback: string) =>
@@ -18,6 +19,7 @@ export const capsuleMockExamples = {
   openedUpdatedAt: MOCK_OPENED_UPDATED_AT,
   reservedUntil: MOCK_RESERVED_UNTIL,
   reservationToken: MOCK_RESERVATION_TOKEN,
+  reservationSessionToken: MOCK_RESERVATION_SESSION_TOKEN,
   capsuleId: MOCK_CAPSULE_ID,
   defaultSlug: "our-graduation-2025",
   openedSlug: "opened-capsule",
@@ -43,6 +45,7 @@ export const buildCapsuleBaseMock = (input: {
 export const buildSlugReservationMock = (slug?: unknown) => ({
   slug: getStringValue(slug, capsuleMockExamples.defaultSlug),
   reservationToken: MOCK_RESERVATION_TOKEN,
+  reservationSessionToken: MOCK_RESERVATION_SESSION_TOKEN,
   reservedUntil: MOCK_RESERVED_UNTIL,
 });
 

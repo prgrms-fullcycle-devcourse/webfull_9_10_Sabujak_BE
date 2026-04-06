@@ -115,6 +115,25 @@ export const setRedisStringIfAbsent = async (
   return result === "OK";
 };
 
+export const setRedisStringValue = async (
+  key: string,
+  value: string,
+  ttlSeconds: number,
+) => {
+  const client = await requireRedisClient();
+
+  if (isLocalRedisConfigured && "set" in client) {
+    await (client as LocalRedisClient).set(key, value, {
+      EX: ttlSeconds,
+    });
+    return;
+  }
+
+  await (client as Redis).set(key, value, {
+    ex: ttlSeconds,
+  });
+};
+
 export const deleteRedisKey = async (key: string) => {
   const client = await requireRedisClient();
 

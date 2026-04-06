@@ -5,6 +5,9 @@ import { isoDateTimeStringSchema, slugSchema } from "./shared.dto";
 export const createSlugReservationBodySchema = z
   .object({
     slug: slugSchema,
+    reservationSessionToken: z.string().optional().openapi({
+      example: capsuleMockExamples.reservationSessionToken,
+    }),
   })
   .openapi("CreateSlugReservationRequest");
 
@@ -13,6 +16,9 @@ export const slugReservationResponseSchema = z
     slug: slugSchema,
     reservationToken: z.string().openapi({
       example: capsuleMockExamples.reservationToken,
+    }),
+    reservationSessionToken: z.string().openapi({
+      example: capsuleMockExamples.reservationSessionToken,
     }),
     reservedUntil: isoDateTimeStringSchema.openapi({
       example: capsuleMockExamples.reservedUntil,

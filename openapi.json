@@ -27,13 +27,22 @@
             "type": "string",
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
           },
+          "reservationSessionToken": {
+            "type": "string",
+            "example": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
+          },
           "reservedUntil": {
             "type": "string",
             "format": "date-time",
             "example": "2026-03-18T02:10:21.000Z"
           }
         },
-        "required": ["slug", "reservationToken", "reservedUntil"]
+        "required": [
+          "slug",
+          "reservationToken",
+          "reservationSessionToken",
+          "reservedUntil"
+        ]
       },
       "ErrorResponse": {
         "type": "object",
@@ -109,6 +118,10 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
             "description": "사용자 노출용 slug 식별자",
             "example": "our-graduation-2025"
+          },
+          "reservationSessionToken": {
+            "type": "string",
+            "example": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
           }
         },
         "required": ["slug"]
@@ -195,6 +208,10 @@
           "reservationToken": {
             "type": "string",
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
+          },
+          "reservationSessionToken": {
+            "type": "string",
+            "example": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
           }
         },
         "required": ["slug", "title", "password", "openAt", "reservationToken"]
