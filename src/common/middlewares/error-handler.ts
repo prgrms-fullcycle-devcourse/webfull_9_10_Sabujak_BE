@@ -1,11 +1,12 @@
 import { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
 import { DomainException } from "../exceptions/domain-exception";
+import * as Sentry from "@sentry/node";
 
 const defaultValidationMessage = "요청 값을 확인해 주세요.";
 const defaultInternalMessage = "서버 내부 오류가 발생했습니다.";
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
@@ -40,6 +41,16 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
   }
 
   console.error(err);
+  Sentry.captureException(err, {
+    extra: {
+      "메서드(Method)": req.method,
+      "요청 주소(URL)": req.originalUrl,
+      "전달된 데이터(Body)": req.body, // 핵심
+      "쿼리 스트링(Query)": req.query,
+      "요청 헤더(Headers)": req.headers,
+      "사용자 IP 정보": req.ip,
+    },
+  });
 
   res.status(500).json({
     error: {
