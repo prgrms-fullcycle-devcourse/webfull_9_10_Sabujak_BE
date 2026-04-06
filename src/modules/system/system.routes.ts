@@ -33,6 +33,12 @@ const globalApiLimiter = rateLimit({
 });
 
 router.get("/healthCheck", healthCheckLimiter, healthCheck);
+
+router.get("/debug-500", () => {
+  // 나중에 삭제 ^^
+  throw new Error("글로벌 errorHandler를 통한 Sentry 연동 테스트입니다!");
+});
+
 router.use(globalApiLimiter);
 router.get("/", helloWorld);
 router.get("/openapi.json", getOpenApiDocument);
