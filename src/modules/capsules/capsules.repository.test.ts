@@ -86,6 +86,22 @@ describe("CapsulesRepository", () => {
     return `${salt}:${derivedKey}`;
   };
 
+  const buildLockedCapsuleSelectMocks = <T>(capsule: T | null) => {
+    const forMock = jest.fn().mockResolvedValue(capsule ? [capsule] : []);
+    const limitMock = jest.fn().mockReturnValue({ for: forMock });
+    const whereMock = jest.fn().mockReturnValue({ limit: limitMock });
+    const fromMock = jest.fn().mockReturnValue({ where: whereMock });
+    const selectMock = jest.fn().mockReturnValue({ from: fromMock });
+
+    return {
+      forMock,
+      fromMock,
+      limitMock,
+      selectMock,
+      whereMock,
+    };
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -963,7 +979,12 @@ describe("CapsulesRepository", () => {
 
   describe("updateCapsule", () => {
     it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue(null);
+      const selectMocks = buildLockedCapsuleSelectMocks(null);
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.updateCapsule({
@@ -973,15 +994,40 @@ describe("CapsulesRepository", () => {
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it("잠금 조회 결과에 필수 필드가 없으면 CapsuleNotFoundException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({} as never);
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "missing-fields-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
     });
 
     it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
         openAt: FUTURE_DATE,
         expiresAt: new Date("2099-01-08T00:00:00.000Z"),
       });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.updateCapsule({
@@ -994,12 +1040,17 @@ describe("CapsulesRepository", () => {
     });
 
     it("만료된 캡슐이면 CapsuleExpiredException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
         openAt: new Date("1999-12-25T00:00:00.000Z"),
         expiresAt: PAST_DATE,
       });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.updateCapsule({
@@ -1012,12 +1063,17 @@ describe("CapsulesRepository", () => {
     });
 
     it("이미 공개된 캡슐이면 CapsuleAlreadyOpenedException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
         openAt: PAST_DATE,
         expiresAt: FUTURE_DATE,
       });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.updateCapsule({
@@ -1030,12 +1086,17 @@ describe("CapsulesRepository", () => {
     });
 
     it("openAt이 현재보다 과거면 InvalidInputException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
         openAt: FUTURE_DATE,
         expiresAt: new Date("2099-01-08T00:00:00.000Z"),
       });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.updateCapsule({
@@ -1047,8 +1108,42 @@ describe("CapsulesRepository", () => {
       ).rejects.toBeInstanceOf(InvalidInputException);
     });
 
-    it("수정 가능 상태면 openAt 기준으로 expiresAt을 재계산해 저장한다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+    it("잠금 조회 뒤 수정 결과가 비어 있으면 CapsuleNotFoundException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: FUTURE_DATE,
+        expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+      });
+
+      const returningMock = jest.fn().mockResolvedValue([]);
+      const updateWhereMock = jest.fn().mockReturnValue({
+        returning: returningMock,
+      });
+      const updateSetMock = jest
+        .fn()
+        .mockReturnValue({ where: updateWhereMock });
+      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
+
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+          update: updateMock,
+        }),
+      );
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "updated-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("수정 가능 상태면 트랜잭션 내부에서 잠금 조회 후 openAt 기준으로 expiresAt을 재계산해 저장한다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
         openAt: new Date("2099-01-02T00:00:00.000Z"),
@@ -1066,9 +1161,19 @@ describe("CapsulesRepository", () => {
           updatedAt: new Date("2026-03-25T00:00:00.000Z"),
         },
       ]);
-      const whereMock = jest.fn().mockReturnValue({ returning: returningMock });
-      const setMock = jest.fn().mockReturnValue({ where: whereMock });
-      db.update.mockReturnValue({ set: setMock });
+      const updateWhereMock = jest.fn().mockReturnValue({
+        returning: returningMock,
+      });
+      const updateSetMock = jest.fn().mockReturnValue({
+        where: updateWhereMock,
+      });
+      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+          update: updateMock,
+        }),
+      );
 
       const result = await capsulesRepository.updateCapsule({
         slug: "updated-capsule",
@@ -1077,8 +1182,10 @@ describe("CapsulesRepository", () => {
         openAt: "2099-12-25T12:00:00.000Z",
       });
 
-      expect(db.update).toHaveBeenCalledTimes(1);
-      expect(setMock).toHaveBeenCalledWith(
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+      expect(db.query.capsules.findFirst).not.toHaveBeenCalled();
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      expect(updateSetMock).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "수정된 캡슐",
           openAt: new Date("2099-12-25T12:00:00.000Z"),
@@ -1100,7 +1207,12 @@ describe("CapsulesRepository", () => {
 
   describe("deleteCapsule", () => {
     it("slug에 해당하는 캡슐이 없으면 CapsuleNotFoundException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue(null);
+      const selectMocks = buildLockedCapsuleSelectMocks(null);
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.deleteCapsule({
@@ -1110,11 +1222,32 @@ describe("CapsulesRepository", () => {
       ).rejects.toBeInstanceOf(CapsuleNotFoundException);
     });
 
+    it("잠금 조회 결과에 필수 필드가 없으면 CapsuleNotFoundException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({} as never);
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
+
+      await expect(
+        capsulesRepository.deleteCapsule({
+          slug: "missing-fields-capsule",
+          password: "1234",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
     it("비밀번호가 일치하지 않으면 ForbiddenPasswordException을 던진다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
       });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.deleteCapsule({
@@ -1124,14 +1257,51 @@ describe("CapsulesRepository", () => {
       ).rejects.toBeInstanceOf(ForbiddenPasswordException);
     });
 
-    it("비밀번호가 일치하면 캡슐을 Hard Delete 한다", async () => {
-      db.query.capsules.findFirst.mockResolvedValue({
+    it("잠금 조회 뒤 삭제 결과가 0건이면 CapsuleNotFoundException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
       });
 
-      const deleteWhereMock = jest.fn().mockResolvedValue(undefined);
-      db.delete.mockReturnValue({ where: deleteWhereMock });
+      const deleteReturningMock = jest.fn().mockResolvedValue([]);
+      const deleteWhereMock = jest.fn().mockReturnValue({
+        returning: deleteReturningMock,
+      });
+      const deleteMock = jest.fn().mockReturnValue({ where: deleteWhereMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          delete: deleteMock,
+          select: selectMocks.selectMock,
+        }),
+      );
+
+      await expect(
+        capsulesRepository.deleteCapsule({
+          slug: "opened-capsule",
+          password: "1234",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+    });
+
+    it("비밀번호가 일치하면 트랜잭션 내부에서 캡슐을 Hard Delete 한다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+      });
+
+      const deleteReturningMock = jest
+        .fn()
+        .mockResolvedValue([{ id: "01TESTCAPSULEID123456789012" }]);
+      const deleteWhereMock = jest.fn().mockReturnValue({
+        returning: deleteReturningMock,
+      });
+      const deleteMock = jest.fn().mockReturnValue({ where: deleteWhereMock });
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          delete: deleteMock,
+          select: selectMocks.selectMock,
+        }),
+      );
 
       await expect(
         capsulesRepository.deleteCapsule({
@@ -1140,7 +1310,9 @@ describe("CapsulesRepository", () => {
         }),
       ).resolves.toBeUndefined();
 
-      expect(db.delete).toHaveBeenCalledTimes(1);
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+      expect(db.query.capsules.findFirst).not.toHaveBeenCalled();
+      expect(deleteMock).toHaveBeenCalledTimes(1);
       expect(deleteWhereMock).toHaveBeenCalledTimes(1);
     });
   });

@@ -385,94 +385,120 @@ export class CapsulesRepository {
   }
 
   async updateCapsule(input: UpdateCapsuleInputDto) {
-    // 수정 전 대상 캡슐 존재 여부, 관리자 비밀번호, 공개 가능 상태를 함께 검증합니다.
-    const capsule = await db.query.capsules.findFirst({
-      columns: {
-        id: true,
-        passwordHash: true,
-        openAt: true,
-        expiresAt: true,
-      },
-      where: eq(capsules.slug, input.slug),
+    return db.transaction(async (tx) => {
+      // 수정 대상 행을 잠가 관리 작업을 직렬화합니다.
+      const [capsule] = await tx
+        .select({
+          id: capsules.id,
+          passwordHash: capsules.passwordHash,
+          openAt: capsules.openAt,
+          expiresAt: capsules.expiresAt,
+        })
+        .from(capsules)
+        .where(eq(capsules.slug, input.slug))
+        .limit(1)
+        .for("update");
+
+      if (
+        !capsule?.id ||
+        !capsule.passwordHash ||
+        !capsule.openAt ||
+        !capsule.expiresAt
+      ) {
+        throw new CapsuleNotFoundException();
+      }
+
+      const isPasswordValid = await verifyPasswordHash(
+        input.password,
+        capsule.passwordHash,
+      );
+
+      if (!isPasswordValid) {
+        throw new ForbiddenPasswordException();
+      }
+
+      const now = Date.now();
+
+      if (capsule.expiresAt.getTime() <= now) {
+        throw new CapsuleExpiredException();
+      }
+
+      if (capsule.openAt.getTime() <= now) {
+        throw new CapsuleAlreadyOpenedException();
+      }
+
+      const newOpenAt = new Date(input.openAt);
+      // 아직 공개 전인 캡슐이라도, 과거 시각으로 되돌려 즉시 만료시키는 수정은 허용하지 않습니다.
+      if (newOpenAt.getTime() <= now) {
+        throw new InvalidInputException(
+          "캡슐 공개 시각은 현재 이후여야 합니다.",
+        );
+      }
+      const newExpiresAt = calculateExpiresAt(newOpenAt);
+
+      const [updatedCapsule] = await tx
+        .update(capsules)
+        .set({
+          title: input.title,
+          openAt: newOpenAt,
+          expiresAt: newExpiresAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(capsules.slug, input.slug))
+        .returning();
+
+      if (!updatedCapsule) {
+        throw new CapsuleNotFoundException();
+      }
+
+      return {
+        id: updatedCapsule.id,
+        slug: updatedCapsule.slug,
+        title: updatedCapsule.title,
+        openAt: updatedCapsule.openAt.toISOString(),
+        expiresAt: updatedCapsule.expiresAt.toISOString(),
+        createdAt: updatedCapsule.createdAt.toISOString(),
+        updatedAt: updatedCapsule.updatedAt.toISOString(),
+      };
     });
-
-    if (!capsule) {
-      throw new CapsuleNotFoundException();
-    }
-
-    const isPasswordValid = await verifyPasswordHash(
-      input.password,
-      capsule.passwordHash,
-    );
-
-    if (!isPasswordValid) {
-      throw new ForbiddenPasswordException();
-    }
-
-    const now = Date.now();
-
-    if (capsule.expiresAt.getTime() <= now) {
-      throw new CapsuleExpiredException();
-    }
-
-    if (capsule.openAt.getTime() <= now) {
-      throw new CapsuleAlreadyOpenedException();
-    }
-
-    const newOpenAt = new Date(input.openAt);
-    // 아직 공개 전인 캡슐이라도, 과거 시각으로 되돌려 즉시 만료시키는 수정은 허용하지 않습니다.
-    if (newOpenAt.getTime() <= now) {
-      throw new InvalidInputException("캡슐 공개 시각은 현재 이후여야 합니다.");
-    }
-    const newExpiresAt = calculateExpiresAt(newOpenAt);
-
-    const [updatedCapsule] = await db
-      .update(capsules)
-      .set({
-        title: input.title,
-        openAt: newOpenAt,
-        expiresAt: newExpiresAt,
-        updatedAt: new Date(),
-      })
-      .where(eq(capsules.id, capsule.id))
-      .returning();
-
-    return {
-      id: updatedCapsule.id,
-      slug: updatedCapsule.slug,
-      title: updatedCapsule.title,
-      openAt: updatedCapsule.openAt.toISOString(),
-      expiresAt: updatedCapsule.expiresAt.toISOString(),
-      createdAt: updatedCapsule.createdAt.toISOString(),
-      updatedAt: updatedCapsule.updatedAt.toISOString(),
-    };
   }
 
   async deleteCapsule(input: DeleteCapsuleInputDto) {
-    // 삭제 전 slug 로 대상 캡슐과 관리자 비밀번호 hash 를 함께 확인합니다.
-    const capsule = await db.query.capsules.findFirst({
-      columns: {
-        id: true,
-        passwordHash: true,
-      },
-      where: eq(capsules.slug, input.slug),
+    await db.transaction(async (tx) => {
+      // 삭제 대상 행을 잠가 수정/삭제 충돌을 직렬화합니다.
+      const [capsule] = await tx
+        .select({
+          id: capsules.id,
+          passwordHash: capsules.passwordHash,
+        })
+        .from(capsules)
+        .where(eq(capsules.slug, input.slug))
+        .limit(1)
+        .for("update");
+
+      if (!capsule?.id || !capsule.passwordHash) {
+        throw new CapsuleNotFoundException();
+      }
+
+      const isPasswordValid = await verifyPasswordHash(
+        input.password,
+        capsule.passwordHash,
+      );
+
+      if (!isPasswordValid) {
+        throw new ForbiddenPasswordException();
+      }
+
+      // messages 는 FK ON DELETE CASCADE 로 함께 정리되므로 capsule 만 삭제합니다.
+      const deletedCapsules = await tx
+        .delete(capsules)
+        .where(eq(capsules.slug, input.slug))
+        .returning({ id: capsules.id });
+
+      if (deletedCapsules.length === 0) {
+        throw new CapsuleNotFoundException();
+      }
     });
-
-    if (!capsule) {
-      throw new CapsuleNotFoundException();
-    }
-
-    const isPasswordValid = await verifyPasswordHash(
-      input.password,
-      capsule.passwordHash,
-    );
-
-    if (!isPasswordValid) {
-      throw new ForbiddenPasswordException();
-    }
-
-    // messages 는 FK ON DELETE CASCADE 로 함께 정리되므로 capsule 만 삭제합니다.
-    await db.delete(capsules).where(eq(capsules.id, capsule.id));
   }
 
   async createMessage(input: CreateMessageInputDto) {

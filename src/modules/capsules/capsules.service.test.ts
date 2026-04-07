@@ -170,6 +170,23 @@ describe("CapsulesService", () => {
     expect(ensureDatabaseReady).toHaveBeenCalledTimes(2);
   });
 
+  it("capsule 삭제가 실패하면 SSE 정리와 전역 집계 publish를 수행하지 않는다", async () => {
+    repository.deleteCapsule.mockRejectedValue(new Error("delete failed"));
+
+    await expect(
+      service.deleteCapsule({
+        password: "secret123",
+        slug: "opened-capsule",
+      }),
+    ).rejects.toThrow("delete failed");
+    await flushAsyncTasks();
+
+    expect(publisher.closeSlug).not.toHaveBeenCalled();
+    expect(statsPublisher.publish).not.toHaveBeenCalled();
+    expect(repository.getCapsuleStats).not.toHaveBeenCalled();
+    expect(ensureDatabaseReady).toHaveBeenCalledTimes(1);
+  });
+
   it("capsule 생성 성공 후 전역 집계를 publish 한다", async () => {
     repository.createCapsule.mockResolvedValue({
       id: "01TESTCAPSULEID123456789012",
