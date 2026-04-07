@@ -33,6 +33,7 @@ const globalApiLimiter = rateLimit({
 });
 
 router.get("/healthCheck", healthCheckLimiter, healthCheck);
+
 router.use(globalApiLimiter);
 router.get("/", helloWorld);
 router.get("/openapi.json", getOpenApiDocument);
