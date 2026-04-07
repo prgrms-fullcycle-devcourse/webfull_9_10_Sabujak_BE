@@ -39,6 +39,10 @@
   - 적용 위치: `POST /capsules` body
   - 조건: `string`
   - 비고: Zod 레벨에서는 필수 문자열까지만 검증하며, 길이/패턴 제약은 없습니다.
+- `reservationSessionToken`
+  - 적용 위치: `POST /capsules/slug-reservations` body, `POST /capsules` body
+  - 조건: `string`
+  - 비고: 선택값이며, 같은 생성 흐름에서 선점한 후보 slug를 묶는 세션 식별자로 사용합니다.
 - `nickname`
   - 적용 위치: `POST /capsules/{slug}/messages` body
   - 조건: `string`, trim 이후 `1~20자`
@@ -53,6 +57,7 @@
 - `POST /capsules/slug-reservations` 요청 안에서 중복 확인과 5분 예약 생성을 함께 처리합니다.
 - 서버는 DB의 기존 `slug` 사용 여부와 Redis 활성 예약을 모두 확인한 뒤, 사용 가능할 때만 Redis `SET NX EX 300`으로 선점합니다.
 - 발급/저장되는 `reservationToken`은 사용자 인증(로그인 등)과 무관한, **슬러그 선점 소유권 확인용 임시(익명) 토큰**입니다.
+- 발급/저장되는 `reservationSessionToken`은 같은 생성 흐름에서 확인한 후보 slug들을 하나의 그룹으로 묶기 위한 임시 세션 토큰입니다.
 - TTL 내에서만 유효하며, 만료되면 다시 선점 요청이 필요합니다.
 - `reservationToken`은 이후 `POST /capsules` 요청에서 필수로 제출해야 합니다. (누락 시 `400 INVALID_INPUT`으로 즉시 거절)
 - 생성 요청자는 `slug`와 `reservationToken`의 조합으로 선점 소유권을 증명합니다.
@@ -82,17 +87,17 @@
 
 ## 2. 엔드포인트 목록
 
-| 도메인  | 기능                 | 메서드   | URI                           | 설명                            |
-| ------- | -------------------- | -------- | ----------------------------- | ------------------------------- |
-| System  | 헬스체크❤️             | `GET`    | `/healthCheck`                | 서버 상태 확인                  |
-| Capsule | 슬러그 예약 생성❤️     | `POST`   | `/capsules/slug-reservations` | 중복 확인 후 5분 예약 토큰 발급 |
-| Capsule | 캡슐 생성❤️            | `POST`   | `/capsules`                   | 신규 타임캡슐 생성              |
-| Capsule | 캡슐 조회❤️            | `GET`    | `/capsules/{slug}`            | 공개 전/후 화면용 통합 조회     |
-| Capsule | messageCount SSE 구독❤️ | `GET`    | `/capsules/{slug}/message-count/stream` | messageCount 실시간 구독 | 
-| Capsule | 관리자 비밀번호 확인❤️ | `POST`   | `/capsules/{slug}/verify`     | 수정/삭제 진입용 비밀번호 검증  |
-| Capsule | 캡슐 수정❤️            | `PATCH`  | `/capsules/{slug}`            | 비밀번호 검증 후 수정           |
-| Capsule | 캡슐 삭제❤️            | `DELETE` | `/capsules/{slug}`            | 비밀번호 검증 후 Hard Delete    |
-| Message | 메시지 작성❤️       | `POST`   | `/capsules/{slug}/messages`   | 익명 메시지 작성                |
+| 도메인  | 기능                    | 메서드   | URI                                     | 설명                            |
+| ------- | ----------------------- | -------- | --------------------------------------- | ------------------------------- |
+| System  | 헬스체크❤️              | `GET`    | `/healthCheck`                          | 서버 상태 확인                  |
+| Capsule | 슬러그 예약 생성❤️      | `POST`   | `/capsules/slug-reservations`           | 중복 확인 후 5분 예약 토큰 발급 |
+| Capsule | 캡슐 생성❤️             | `POST`   | `/capsules`                             | 신규 타임캡슐 생성              |
+| Capsule | 캡슐 조회❤️             | `GET`    | `/capsules/{slug}`                      | 공개 전/후 화면용 통합 조회     |
+| Capsule | messageCount SSE 구독❤️ | `GET`    | `/capsules/{slug}/message-count/stream` | messageCount 실시간 구독        |
+| Capsule | 관리자 비밀번호 확인❤️  | `POST`   | `/capsules/{slug}/verify`               | 수정/삭제 진입용 비밀번호 검증  |
+| Capsule | 캡슐 수정❤️             | `PATCH`  | `/capsules/{slug}`                      | 비밀번호 검증 후 수정           |
+| Capsule | 캡슐 삭제❤️             | `DELETE` | `/capsules/{slug}`                      | 비밀번호 검증 후 Hard Delete    |
+| Message | 메시지 작성❤️           | `POST`   | `/capsules/{slug}/messages`             | 익명 메시지 작성                |
 
 ## 3. 엔드포인트 상세
 
@@ -120,7 +125,8 @@ Request Body
 
 ```json
 {
-  "slug": "our-graduation-2025"
+  "slug": "our-graduation-2025",
+  "reservationSessionToken": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
 }
 ```
 
@@ -130,6 +136,7 @@ Response `201 Created`
 {
   "slug": "our-graduation-2025",
   "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC",
+  "reservationSessionToken": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ",
   "reservedUntil": "2026-03-18T02:10:21.000Z"
 }
 ```
@@ -140,10 +147,12 @@ Response `201 Created`
 - 서버는 요청을 받으면 다음 순서로 처리합니다.
 - `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
 - `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
+- `reservationSessionToken`은 선택값이며, 같은 생성 흐름에서 다른 후보 slug를 계속 확인할 때 이전 응답값을 다시 보냅니다.
 - DB에서 기존 캡슐 `slug` 중복 여부 확인
 - Redis에서 활성 예약 여부 확인
 - 사용 가능하면 Redis key `capsule:slug-reservation:{slug}`에 `SET NX EX 300`으로 선점
-- Redis value에는 예약 소유권 검증용 임시 토큰(`reservationToken`)을 저장합니다.
+- Redis value에는 예약 소유권 검증용 임시 토큰(`reservationToken`)과 생성 흐름 식별용 `reservationSessionToken`을 함께 저장합니다.
+- 세션 key에는 같은 생성 흐름에서 선점한 후보 slug 목록을 저장합니다.
 - 이미 사용 중이거나 현재 예약 중인 `slug`이면 `409 SLUG_ALREADY_IN_USE`
 
 ### 3.3 캡슐 생성❤️
@@ -158,7 +167,8 @@ Request Body
   "title": "졸업 축하 타임캡슐",
   "password": "1234",
   "openAt": "2025-12-25T12:00:00.000Z",
-  "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC"
+  "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC",
+  "reservationSessionToken": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
 }
 ```
 
@@ -186,9 +196,10 @@ Response `201 Created`
 - `openAt`은 Zod `datetime()` 기준의 UTC ISO 8601 일시 문자열이어야 합니다.
 - `reservationToken`은 필수(Required)입니다. 누락 시 `400 INVALID_INPUT`을 반환합니다.
 - `reservationToken`은 Zod 레벨에서 필수 `string`까지만 검증합니다. 길이/패턴 제약은 없습니다.
+- `reservationSessionToken`은 선택값이며, 전달 시 slug 예약 정보에 저장된 세션과 일치해야 합니다.
 - `reservationToken`이 Redis 예약 정보와 일치해야 합니다.
 - 예약 토큰이 만료되었거나, 정보 불일치로 예약 검증에 실패하면 `409 SLUG_RESERVATION_MISMATCH`를 반환합니다.
-- 캡슐 생성이 성공하면 해당 `slug` 의 Redis 예약 정보는 즉시 정리합니다.
+- 캡슐 생성이 성공하면 해당 생성 세션에 묶인 후보 slug들의 Redis 예약 정보를 즉시 정리합니다.
 - 최종 저장 시 `slug` unique constraint 충돌이 발생하면 `409 SLUG_ALREADY_IN_USE`를 반환합니다.
 
 ### 3.4 캡슐 조회❤️

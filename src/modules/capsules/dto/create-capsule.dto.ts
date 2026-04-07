@@ -19,6 +19,9 @@ export const createCapsuleBodySchema = z
     reservationToken: z.string().openapi({
       example: capsuleMockExamples.reservationToken,
     }),
+    reservationSessionToken: z.string().optional().openapi({
+      example: capsuleMockExamples.reservationSessionToken,
+    }),
   })
   .openapi("CreateCapsuleRequest");
 

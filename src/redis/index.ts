@@ -115,6 +115,72 @@ export const setRedisStringIfAbsent = async (
   return result === "OK";
 };
 
+export const setRedisStringValue = async (
+  key: string,
+  value: string,
+  ttlSeconds: number,
+) => {
+  const client = await requireRedisClient();
+
+  if (isLocalRedisConfigured && "set" in client) {
+    await (client as LocalRedisClient).set(key, value, {
+      EX: ttlSeconds,
+    });
+    return;
+  }
+
+  await (client as Redis).set(key, value, {
+    ex: ttlSeconds,
+  });
+};
+
+export const addRedisSetMembers = async (
+  key: string,
+  members: string[],
+  ttlSeconds: number,
+) => {
+  if (members.length === 0) {
+    return;
+  }
+
+  const client = await requireRedisClient();
+
+  if (isLocalRedisConfigured && "sAdd" in client) {
+    const multi = (client as LocalRedisClient).multi() as {
+      sAdd: (key: string, member: string) => unknown;
+      expire: (key: string, seconds: number) => unknown;
+      exec: () => Promise<unknown>;
+    };
+
+    for (const member of members) {
+      multi.sAdd(key, member);
+    }
+
+    multi.expire(key, ttlSeconds);
+    await multi.exec();
+    return;
+  }
+
+  const multi = (client as Redis).multi();
+
+  for (const member of members) {
+    multi.sadd(key, member);
+  }
+
+  multi.expire(key, ttlSeconds);
+  await multi.exec();
+};
+
+export const getRedisSetMembers = async (key: string): Promise<string[]> => {
+  const client = await requireRedisClient();
+
+  if (isLocalRedisConfigured && "sMembers" in client) {
+    return (client as LocalRedisClient).sMembers(key);
+  }
+
+  return ((await (client as Redis).smembers(key)) ?? []) as string[];
+};
+
 export const deleteRedisKey = async (key: string) => {
   const client = await requireRedisClient();
 

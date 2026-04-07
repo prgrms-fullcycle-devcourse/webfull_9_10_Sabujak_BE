@@ -3,7 +3,9 @@ import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
 import {
+  addRedisSetMembers,
   deleteRedisKey,
+  getRedisSetMembers,
   getRedisStringValue,
   setRedisStringIfAbsent,
 } from "../../redis";
@@ -30,6 +32,7 @@ import {
 
 const SLUG_RESERVATION_TTL_SECONDS = 300;
 const SLUG_RESERVATION_KEY_PREFIX = "capsule:slug-reservation:";
+const SLUG_RESERVATION_SESSION_KEY_PREFIX = "capsule:slug-reservation-session:";
 const CAPSULE_OPEN_DURATION_DAYS = 7;
 const MESSAGE_LIMIT_PER_CAPSULE = 300;
 const CAPSULE_SLUG_UNIQUE_CONSTRAINT = "capsules_slug_unq";
@@ -40,6 +43,80 @@ const PG_UNIQUE_VIOLATION_CODE = "23505";
 
 const getSlugReservationKey = (slug: string) =>
   `${SLUG_RESERVATION_KEY_PREFIX}${slug}`;
+
+const getSlugReservationSessionKey = (reservationSessionToken: string) =>
+  `${SLUG_RESERVATION_SESSION_KEY_PREFIX}${reservationSessionToken}`;
+
+type SlugReservationRecord = {
+  reservationToken: string;
+  reservationSessionToken: string;
+};
+
+const parseSlugReservationRecord = (
+  value: string | null,
+): SlugReservationRecord | null => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<SlugReservationRecord>;
+
+    if (
+      typeof parsed.reservationToken === "string" &&
+      typeof parsed.reservationSessionToken === "string"
+    ) {
+      return {
+        reservationToken: parsed.reservationToken,
+        reservationSessionToken: parsed.reservationSessionToken,
+      };
+    }
+  } catch {
+    if (value.trim().length > 0) {
+      return {
+        reservationToken: value,
+        reservationSessionToken: "",
+      };
+    }
+  }
+
+  return null;
+};
+
+const parseSessionReservationSlugs = (value: string | null): string[] => {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (item): item is string => typeof item === "string" && item.length > 0,
+    );
+  } catch {
+    return [];
+  }
+};
+
+const getSessionReservationSlugs = async (
+  reservationSessionKey: string,
+): Promise<string[]> => {
+  const reservedSlugs = await getRedisSetMembers(reservationSessionKey);
+
+  if (reservedSlugs.length > 0) {
+    return reservedSlugs;
+  }
+
+  // string 기반 구 예약 데이터가 남아 있을 수 있어 cleanup 시 한 번 더 호환 처리합니다.
+  return parseSessionReservationSlugs(
+    await getRedisStringValue(reservationSessionKey),
+  );
+};
 
 const encodeBase32 = (value: number, length: number) => {
   let result = "";
@@ -179,10 +256,15 @@ export class CapsulesRepository {
     }
 
     const reservationToken = randomUUID().replaceAll("-", "");
+    const reservationSessionToken =
+      input.reservationSessionToken ?? randomUUID().replaceAll("-", "");
     // Redis NX + TTL로 5분 동안만 유효한 slug 예약을 생성합니다.
     const isReserved = await setRedisStringIfAbsent(
       reservationKey,
-      reservationToken,
+      JSON.stringify({
+        reservationToken,
+        reservationSessionToken,
+      } satisfies SlugReservationRecord),
       SLUG_RESERVATION_TTL_SECONDS,
     );
 
@@ -190,9 +272,25 @@ export class CapsulesRepository {
       throw new SlugAlreadyInUseException();
     }
 
+    const reservationSessionKey = getSlugReservationSessionKey(
+      reservationSessionToken,
+    );
+
+    try {
+      await addRedisSetMembers(
+        reservationSessionKey,
+        [input.slug],
+        SLUG_RESERVATION_TTL_SECONDS,
+      );
+    } catch (error) {
+      await deleteRedisKey(reservationKey);
+      throw error;
+    }
+
     return {
       slug: input.slug,
       reservationToken,
+      reservationSessionToken,
       reservedUntil: new Date(
         Date.now() + SLUG_RESERVATION_TTL_SECONDS * 1000,
       ).toISOString(),
@@ -201,10 +299,23 @@ export class CapsulesRepository {
 
   async createCapsule(input: CreateCapsuleInputDto) {
     const reservationKey = getSlugReservationKey(input.slug);
-    const reservedToken = await getRedisStringValue(reservationKey);
+    const reservation = parseSlugReservationRecord(
+      await getRedisStringValue(reservationKey),
+    );
 
     // 캡슐 생성은 기존 예약 토큰을 가진 요청만 통과할 수 있습니다.
-    if (!reservedToken || reservedToken !== input.reservationToken) {
+    if (
+      !reservation ||
+      reservation.reservationToken !== input.reservationToken
+    ) {
+      throw new SlugReservationMismatchException();
+    }
+
+    if (
+      input.reservationSessionToken &&
+      reservation.reservationSessionToken &&
+      reservation.reservationSessionToken !== input.reservationSessionToken
+    ) {
       throw new SlugReservationMismatchException();
     }
 
@@ -239,6 +350,24 @@ export class CapsulesRepository {
       try {
         // 사용이 끝난 예약은 즉시 제거해 동일 토큰 재사용을 막습니다.
         await deleteRedisKey(reservationKey);
+
+        if (reservation.reservationSessionToken) {
+          const reservationSessionKey = getSlugReservationSessionKey(
+            reservation.reservationSessionToken,
+          );
+          const reservedSlugs = await getSessionReservationSlugs(
+            reservationSessionKey,
+          );
+
+          await Promise.all(
+            reservedSlugs
+              .filter((reservedSlug: string) => reservedSlug !== input.slug)
+              .map((reservedSlug: string) =>
+                deleteRedisKey(getSlugReservationKey(reservedSlug)),
+              ),
+          );
+          await deleteRedisKey(reservationSessionKey);
+        }
       } catch (error) {
         console.error(
           "[capsules] Failed to clean up slug reservation after capsule creation.",
