@@ -10,6 +10,8 @@ const RETRYABLE_DB_ERROR_CODES = new Set([
   "ECONNRESET",
   "ECONNREFUSED",
   "ETIMEDOUT",
+  // ENOTFOUND is intentionally excluded so configuration mistakes such as
+  // falling back to a local-only host fail fast instead of being retried.
 ]);
 
 const RETRYABLE_DB_ERROR_MESSAGE = [
