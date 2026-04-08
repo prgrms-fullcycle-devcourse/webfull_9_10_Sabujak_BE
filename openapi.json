@@ -970,7 +970,7 @@
       "patch": {
         "tags": ["Capsule"],
         "summary": "캡슐 수정❤️",
-        "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다.",
+        "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다. 동시 수정/삭제 충돌이 있더라도 서버 오류 대신 현재 상태를 다시 판정해 404/409/410으로 응답합니다.",
         "parameters": [
           {
             "schema": {
@@ -1133,7 +1133,7 @@
       "delete": {
         "tags": ["Capsule"],
         "summary": "캡슐 삭제❤️",
-        "description": "관리자 비밀번호 검증 후 캡슐을 삭제합니다.",
+        "description": "관리자 비밀번호 검증 후 캡슐을 삭제합니다. 다른 관리 요청이 먼저 삭제를 완료한 경우에도 서버 오류 대신 404로 응답합니다.",
         "parameters": [
           {
             "schema": {
