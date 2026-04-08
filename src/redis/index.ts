@@ -1,6 +1,8 @@
 import { Redis } from "@upstash/redis";
 import { createClient, RedisClientType } from "redis";
 
+import { logger } from "../common/utils/logger";
+
 const localRedisUrl = process.env.REDIS_URL?.trim();
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
@@ -39,7 +41,7 @@ export const getRedisClient = async (): Promise<AppRedisClient | null> => {
     });
 
     client.on("error", (error) => {
-      console.error("[redis] local redis connection error", error);
+      logger.error(error, "[redis] local redis connection error");
     });
 
     redisConnectionPromise = client

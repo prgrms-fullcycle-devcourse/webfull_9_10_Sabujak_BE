@@ -79,13 +79,16 @@ export const isRetryableDbConnectionError = (error: unknown): boolean => {
   return false;
 };
 
+import { logger as appLogger } from "../common/utils/logger";
+
 export const withDbConnectionRetry = async <T>(
   task: () => Promise<T>,
   options: RetryOptions = {},
 ): Promise<T> => {
   const attempts = options.attempts ?? DEFAULT_RETRY_ATTEMPTS;
   const baseDelayMs = options.delayMs ?? DEFAULT_RETRY_DELAY_MS;
-  const logger = options.logger ?? console.warn;
+  const logger =
+    options.logger ?? ((msg: string, err: Error) => appLogger.warn(err, msg));
 
   let lastError: unknown;
 

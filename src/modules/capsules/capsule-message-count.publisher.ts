@@ -1,4 +1,5 @@
 import { Response } from "express";
+import { logger } from "../../common/utils/logger";
 
 type MessageCountSubscriber = {
   cleanup: () => void;
@@ -139,9 +140,9 @@ export class InMemoryCapsuleMessageCountPublisher implements CapsuleMessageCount
       try {
         subscriber.response.write(event);
       } catch (error) {
-        console.error(
-          "[capsules] Failed to write messageCount SSE event.",
+        logger.error(
           error,
+          "[capsules] Failed to write messageCount SSE event.",
         );
         subscriber.cleanup();
       }

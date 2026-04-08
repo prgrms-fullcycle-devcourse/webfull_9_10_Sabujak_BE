@@ -1,4 +1,5 @@
 import { Response } from "express";
+import { logger } from "../../common/utils/logger";
 
 type CapsuleStatsPayload = {
   totalCapsuleCount: number;
@@ -118,9 +119,9 @@ export class InMemoryCapsuleStatsPublisher implements CapsuleStatsPublisher {
       try {
         subscriber.response.write(event);
       } catch (error) {
-        console.error(
-          "[capsules] Failed to write capsuleStats SSE event.",
+        logger.error(
           error,
+          "[capsules] Failed to write capsuleStats SSE event.",
         );
         subscriber.cleanup();
       }

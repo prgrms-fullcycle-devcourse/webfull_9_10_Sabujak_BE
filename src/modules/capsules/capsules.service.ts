@@ -1,3 +1,4 @@
+import { logger } from "../../common/utils/logger";
 import { ensureDatabaseConnection } from "../../db";
 import {
   CapsuleMessageCountPublisher,
@@ -97,9 +98,9 @@ export class CapsulesService {
 
       this.messageCountPublisher.publish(slug, { messageCount });
     } catch (error) {
-      console.error(
-        "[capsules] Failed to publish messageCount after message create.",
+      logger.error(
         error,
+        "[capsules] Failed to publish messageCount after message create.",
       );
     }
   }
@@ -116,7 +117,7 @@ export class CapsulesService {
       );
       this.statsPublisher.publish(stats);
     } catch (error) {
-      console.error("[capsules] Failed to publish capsuleStats update.", error);
+      logger.error(error, "[capsules] Failed to publish capsuleStats update.");
     }
   }
 }
