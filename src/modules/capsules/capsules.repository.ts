@@ -8,6 +8,7 @@ import {
   getRedisSetMembers,
   getRedisStringValue,
   setRedisStringIfAbsent,
+  setRedisStringValue,
 } from "../../redis";
 import {
   CapsuleExpiredException,
@@ -249,10 +250,47 @@ export class CapsulesRepository {
 
     const reservationKey = getSlugReservationKey(input.slug);
     // 아직 생성되지 않은 slug라도, 활성 예약이 있으면 같은 slug를 다시 선점할 수 없습니다.
-    const existingReservation = await getRedisStringValue(reservationKey);
+    const existingReservation = parseSlugReservationRecord(
+      await getRedisStringValue(reservationKey),
+    );
 
     if (existingReservation) {
-      throw new SlugAlreadyInUseException();
+      const isSameSessionReservation =
+        Boolean(input.reservationSessionToken) &&
+        existingReservation.reservationSessionToken ===
+          input.reservationSessionToken;
+
+      if (!isSameSessionReservation) {
+        throw new SlugAlreadyInUseException();
+      }
+
+      const reservationSessionKey = getSlugReservationSessionKey(
+        existingReservation.reservationSessionToken,
+      );
+
+      // 같은 사용자가 같은 slug를 다시 확인하면 기존 예약을 재사용해
+      // 생성 직전 stale token mismatch가 나지 않도록 TTL만 연장합니다.
+      await Promise.all([
+        setRedisStringValue(
+          reservationKey,
+          JSON.stringify(existingReservation),
+          SLUG_RESERVATION_TTL_SECONDS,
+        ),
+        addRedisSetMembers(
+          reservationSessionKey,
+          [input.slug],
+          SLUG_RESERVATION_TTL_SECONDS,
+        ),
+      ]);
+
+      return {
+        slug: input.slug,
+        reservationToken: existingReservation.reservationToken,
+        reservationSessionToken: existingReservation.reservationSessionToken,
+        reservedUntil: new Date(
+          Date.now() + SLUG_RESERVATION_TTL_SECONDS * 1000,
+        ).toISOString(),
+      };
     }
 
     const reservationToken = randomUUID().replaceAll("-", "");
