@@ -33,6 +33,7 @@ jest.mock("../../redis", () => ({
   getRedisSetMembers: jest.fn(),
   getRedisStringValue: jest.fn(),
   setRedisStringIfAbsent: jest.fn(),
+  setRedisStringValue: jest.fn(),
   deleteRedisKey: jest.fn(),
 }));
 
@@ -56,12 +57,14 @@ const {
   getRedisSetMembers,
   getRedisStringValue,
   setRedisStringIfAbsent,
+  setRedisStringValue,
   deleteRedisKey,
 } = jest.requireMock("../../redis") as {
   addRedisSetMembers: jest.Mock;
   getRedisSetMembers: jest.Mock;
   getRedisStringValue: jest.Mock;
   setRedisStringIfAbsent: jest.Mock;
+  setRedisStringValue: jest.Mock;
   deleteRedisKey: jest.Mock;
 };
 
@@ -142,6 +145,41 @@ describe("CapsulesRepository", () => {
       await expect(
         capsulesRepository.createSlugReservation({ slug: "reserved-slug" }),
       ).rejects.toBeInstanceOf(SlugAlreadyInUseException);
+    });
+
+    it("같은 세션이 같은 slug를 다시 확인하면 기존 예약을 재사용하고 TTL을 갱신한다", async () => {
+      db.query.capsules.findFirst.mockResolvedValue(null);
+      getRedisStringValue.mockResolvedValueOnce(
+        buildSlugReservationRecord("reserved-token", "session-a"),
+      );
+      setRedisStringValue.mockResolvedValue(undefined);
+      addRedisSetMembers.mockResolvedValue(undefined);
+
+      const result = await capsulesRepository.createSlugReservation({
+        slug: "reserved-slug",
+        reservationSessionToken: "session-a",
+      });
+
+      expect(result).toEqual({
+        slug: "reserved-slug",
+        reservationToken: "reserved-token",
+        reservationSessionToken: "session-a",
+        reservedUntil: expect.any(String),
+      });
+      expect(setRedisStringValue).toHaveBeenCalledWith(
+        "capsule:slug-reservation:reserved-slug",
+        JSON.stringify({
+          reservationToken: "reserved-token",
+          reservationSessionToken: "session-a",
+        }),
+        300,
+      );
+      expect(addRedisSetMembers).toHaveBeenCalledWith(
+        "capsule:slug-reservation-session:session-a",
+        ["reserved-slug"],
+        300,
+      );
+      expect(setRedisStringIfAbsent).not.toHaveBeenCalled();
     });
 
     it("사용 가능한 slug면 reservationSessionToken과 reservationToken을 함께 반환한다", async () => {
