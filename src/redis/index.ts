@@ -78,17 +78,29 @@ export const requireRedisClient = async () => {
   return client;
 };
 
+const normalizeRedisStringValue = (value: unknown) => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value === null || typeof value === "undefined") {
+    return null;
+  }
+
+  return JSON.stringify(value);
+};
+
 export const getRedisStringValue = async (key: string) => {
   const client = await requireRedisClient();
 
   // 로컬 Redis와 Upstash Redis를 같은 인터페이스로 읽기 위해 분기합니다.
   if (isLocalRedisConfigured && "get" in client) {
-    const value = await (client as LocalRedisClient).get(key);
-    return typeof value === "string" ? value : null;
+    return normalizeRedisStringValue(
+      await (client as LocalRedisClient).get(key),
+    );
   }
 
-  const value = await (client as Redis).get<string>(key);
-  return typeof value === "string" ? value : null;
+  return normalizeRedisStringValue(await (client as Redis).get(key));
 };
 
 export const setRedisStringIfAbsent = async (
