@@ -1,3 +1,4 @@
+import { logger } from "../../common/utils/logger";
 import { scryptSync } from "node:crypto";
 import {
   CapsuleAlreadyOpenedException,
@@ -526,7 +527,7 @@ describe("CapsulesRepository", () => {
 
     it("Redis 예약 정리 실패가 발생해도 캡슐 생성 성공 응답을 반환한다", async () => {
       const consoleErrorSpy = jest
-        .spyOn(console, "error")
+        .spyOn(logger, "error")
         .mockImplementation(() => undefined);
 
       getRedisStringValue
@@ -570,8 +571,8 @@ describe("CapsulesRepository", () => {
         updatedAt: "2026-03-23T00:00:00.000Z",
       });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "[capsules] Failed to clean up slug reservation after capsule creation.",
         expect.any(Error),
+        "[capsules] Failed to clean up slug reservation after capsule creation.",
       );
 
       consoleErrorSpy.mockRestore();
