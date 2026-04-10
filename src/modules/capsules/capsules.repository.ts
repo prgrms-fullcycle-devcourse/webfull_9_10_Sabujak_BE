@@ -1,4 +1,5 @@
 import { asc, count, eq } from "drizzle-orm";
+import { logger } from "../../common/utils/logger";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
 import { capsules, messages } from "../../db/schema";
@@ -407,9 +408,9 @@ export class CapsulesRepository {
           await deleteRedisKey(reservationSessionKey);
         }
       } catch (error) {
-        console.error(
-          "[capsules] Failed to clean up slug reservation after capsule creation.",
+        logger.error(
           error,
+          "[capsules] Failed to clean up slug reservation after capsule creation.",
         );
       }
 

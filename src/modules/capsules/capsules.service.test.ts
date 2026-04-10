@@ -1,3 +1,4 @@
+import { logger } from "../../common/utils/logger";
 import { CapsulesService } from "./capsules.service";
 
 describe("CapsulesService", () => {
@@ -105,7 +106,7 @@ describe("CapsulesService", () => {
 
   it("publish 단계가 실패해도 메시지 생성 자체는 성공시킨다", async () => {
     const consoleErrorSpy = jest
-      .spyOn(console, "error")
+      .spyOn(logger, "error")
       .mockImplementation(() => undefined);
 
     repository.createMessage.mockResolvedValue({
@@ -221,7 +222,7 @@ describe("CapsulesService", () => {
 
   it("전역 집계 publish 실패가 발생해도 본 요청 응답은 성공시킨다", async () => {
     const consoleErrorSpy = jest
-      .spyOn(console, "error")
+      .spyOn(logger, "error")
       .mockImplementation(() => undefined);
 
     repository.createCapsule.mockResolvedValue({

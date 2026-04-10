@@ -1,6 +1,7 @@
 import "dotenv/config";
 import "./instrument";
 import app from "./app";
+import { logger } from "./common/utils/logger";
 import { ensureDatabaseSchema } from "./db/ensure-schema";
 
 const PORT = process.env.API_PORT || 3000;
@@ -13,11 +14,11 @@ const bootstrap = async () => {
   }
 
   app.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
+    logger.info(`Server running on ${PORT}`);
   });
 };
 
 bootstrap().catch((error) => {
-  console.error("[startup] Failed to bootstrap application.", error);
+  logger.error(error, "[startup] Failed to bootstrap application.");
   process.exit(1);
 });

@@ -8,6 +8,7 @@ import { getRedisClient, isRedisConfigured } from "../../redis";
 export const helloWorld = (req: Request, res: Response) => {
   res.status(200).send("Hello world~");
 };
+import { logger } from "../../common/utils/logger";
 
 // DB 및 Redis 연결 상태 점검용 시스템 헬스체크
 export const healthCheck = async (req: Request, res: Response) => {
@@ -20,13 +21,13 @@ export const healthCheck = async (req: Request, res: Response) => {
     }
 
     const memory = getFormattedMemoryUsage();
-    console.log(
+    logger.debug(
       `[healthCheck] ok rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
     );
     res.status(200).send("healthCheck: OK");
   } catch {
     const memory = getFormattedMemoryUsage();
-    console.error(
+    logger.error(
       `[healthCheck] failed rss=${memory.rssMb}MB heapUsed=${memory.heapUsedMb}MB heapTotal=${memory.heapTotalMb}MB external=${memory.externalMb}MB redis=${isRedisConfigured ? "ENABLED" : "DISABLED"}`,
     );
     res.status(500).send("healthCheck: false");

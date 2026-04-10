@@ -3,6 +3,8 @@ import { ZodError } from "zod";
 import { DomainException } from "../exceptions/domain-exception";
 import * as Sentry from "@sentry/node";
 
+import { logger } from "../utils/logger";
+
 const defaultValidationMessage = "요청 값을 확인해 주세요.";
 const defaultInternalMessage = "서버 내부 오류가 발생했습니다.";
 
@@ -40,7 +42,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     return;
   }
 
-  console.error(err);
+  logger.error(err);
   Sentry.captureException(err, {
     extra: {
       "메서드(Method)": req.method,

@@ -92,20 +92,22 @@ export const createPoolDiagnostics = (
   return resolvePoolConfiguration(env).diagnostics;
 };
 
+import { logger as appLogger } from "../common/utils/logger";
+
 export const formatPoolInitializationLog = (diagnostics: PoolDiagnostics) => {
   return `${poolInitializationLogPrefix} env=${diagnostics.environment} source=${diagnostics.source} host=${diagnostics.host} ssl=${diagnostics.ssl} max=${diagnostics.maxConnections}`;
 };
 
 export const logPoolInitialization = (
   diagnostics: PoolDiagnostics,
-  logger: PoolInitializationLogger = console.info,
+  logger: PoolInitializationLogger = (msg) => appLogger.info(msg),
 ) => {
   logger(formatPoolInitializationLog(diagnostics));
 };
 
 export const bindPoolErrorHandler = (
   pool: PoolLike,
-  logger: PoolErrorLogger = console.error,
+  logger: PoolErrorLogger = (msg, err) => appLogger.error(err, msg),
 ) => {
   pool.on("error", (error: Error) => {
     logger(poolErrorMessage, error);
