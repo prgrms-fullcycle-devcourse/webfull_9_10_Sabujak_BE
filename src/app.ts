@@ -13,7 +13,6 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "")
   .filter(Boolean);
 
 app.set("trust proxy", 1);
-app.use(express.json());
 
 app.use(
   pinoHttp({
@@ -38,6 +37,9 @@ app.use(
     },
   }),
 );
+
+app.use(express.json());
+
 app.use(
   cors({
     origin: allowedOrigins,
