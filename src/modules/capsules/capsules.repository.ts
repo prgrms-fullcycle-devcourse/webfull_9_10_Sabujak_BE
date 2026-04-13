@@ -591,6 +591,10 @@ export class CapsulesRepository {
         throw new ForbiddenPasswordException();
       }
 
+      if (capsule.version !== input.version) {
+        throw new CapsuleUpdateConflictException();
+      }
+
       const now = Date.now();
 
       if (capsule.expiresAt.getTime() <= now) {
@@ -628,29 +632,6 @@ export class CapsulesRepository {
         .returning();
 
       if (!updatedCapsule) {
-        const [currentCapsule] = await tx
-          .select({
-            id: capsules.id,
-            openAt: capsules.openAt,
-            expiresAt: capsules.expiresAt,
-            version: capsules.version,
-          })
-          .from(capsules)
-          .where(eq(capsules.slug, input.slug))
-          .limit(1);
-
-        if (!currentCapsule?.id) {
-          throw new CapsuleNotFoundException();
-        }
-
-        if (currentCapsule.expiresAt.getTime() <= now) {
-          throw new CapsuleExpiredException();
-        }
-
-        if (currentCapsule.openAt.getTime() <= now) {
-          throw new CapsuleAlreadyOpenedException();
-        }
-
         throw new CapsuleUpdateConflictException();
       }
 

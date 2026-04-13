@@ -124,20 +124,6 @@ describe("CapsulesRepository", () => {
     };
   };
 
-  const buildPlainCapsuleSelectMocks = <T>(capsule: T | null) => {
-    const limitMock = jest.fn().mockResolvedValue(capsule ? [capsule] : []);
-    const whereMock = jest.fn().mockReturnValue({ limit: limitMock });
-    const fromMock = jest.fn().mockReturnValue({ where: whereMock });
-    const selectMock = jest.fn().mockReturnValue({ from: fromMock });
-
-    return {
-      fromMock,
-      limitMock,
-      selectMock,
-      whereMock,
-    };
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
     getRedisSetMembers.mockResolvedValue([]);
@@ -1307,60 +1293,40 @@ describe("CapsulesRepository", () => {
       ).rejects.toBeInstanceOf(InvalidInputException);
     });
 
-    it("잠금 조회 뒤 수정 결과가 비고 재조회 결과도 없으면 CapsuleNotFoundException을 던진다", async () => {
-      const lockedSelectMocks = buildLockedCapsuleSelectMocks({
+    it("버전이 일치하지 않으면 CapsuleUpdateConflictException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
-        openAt: FUTURE_DATE,
-        expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+        openAt: new Date("2099-01-02T00:00:00.000Z"),
+        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
+        version: 2,
+      });
+
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "updated-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          version: 1,
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleUpdateConflictException);
+    });
+
+    it("수정 쿼리 결과가 0건이면 CapsuleUpdateConflictException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: new Date("2099-01-02T00:00:00.000Z"),
+        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
         version: 1,
       });
-      const requerySelectMocks = buildPlainCapsuleSelectMocks(null);
-
-      const returningMock = jest.fn().mockResolvedValue([]);
-      const updateWhereMock = jest.fn().mockReturnValue({
-        returning: returningMock,
-      });
-      const updateSetMock = jest
-        .fn()
-        .mockReturnValue({ where: updateWhereMock });
-      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
-
-      db.transaction.mockImplementation(async (callback) =>
-        callback({
-          select: jest
-            .fn()
-            .mockImplementationOnce(lockedSelectMocks.selectMock)
-            .mockImplementationOnce(requerySelectMocks.selectMock),
-          update: updateMock,
-        }),
-      );
-
-      await expect(
-        capsulesRepository.updateCapsule({
-          slug: "updated-capsule",
-          password: "1234",
-          title: "수정된 캡슐",
-          version: 1,
-          openAt: "2099-12-25T12:00:00.000Z",
-        }),
-      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
-    });
-
-    it("잠금 조회 뒤 수정 결과가 비고 재조회 결과가 이미 공개 상태면 CapsuleAlreadyOpenedException을 던진다", async () => {
-      const lockedSelectMocks = buildLockedCapsuleSelectMocks({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        openAt: new Date("2099-01-02T00:00:00.000Z"),
-        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
-        version: 2,
-      });
-      const requerySelectMocks = buildPlainCapsuleSelectMocks({
-        id: "01TESTCAPSULEID123456789012",
-        openAt: PAST_DATE,
-        expiresAt: FUTURE_DATE,
-        version: 3,
-      });
 
       const returningMock = jest.fn().mockResolvedValue([]);
       const updateWhereMock = jest.fn().mockReturnValue({
@@ -1370,100 +1336,10 @@ describe("CapsulesRepository", () => {
         where: updateWhereMock,
       });
       const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
+
       db.transaction.mockImplementation(async (callback) =>
         callback({
-          select: jest
-            .fn()
-            .mockImplementationOnce(lockedSelectMocks.selectMock)
-            .mockImplementationOnce(requerySelectMocks.selectMock),
-          update: updateMock,
-        }),
-      );
-
-      await expect(
-        capsulesRepository.updateCapsule({
-          slug: "updated-capsule",
-          password: "1234",
-          title: "수정된 캡슐",
-          version: 1,
-          openAt: "2099-12-25T12:00:00.000Z",
-        }),
-      ).rejects.toBeInstanceOf(CapsuleAlreadyOpenedException);
-    });
-
-    it("잠금 조회 뒤 수정 결과가 비고 재조회 결과가 만료 상태면 CapsuleExpiredException을 던진다", async () => {
-      const lockedSelectMocks = buildLockedCapsuleSelectMocks({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        openAt: new Date("2099-01-02T00:00:00.000Z"),
-        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
-        version: 2,
-      });
-      const requerySelectMocks = buildPlainCapsuleSelectMocks({
-        id: "01TESTCAPSULEID123456789012",
-        openAt: new Date("1999-12-25T00:00:00.000Z"),
-        expiresAt: PAST_DATE,
-        version: 3,
-      });
-
-      const returningMock = jest.fn().mockResolvedValue([]);
-      const updateWhereMock = jest.fn().mockReturnValue({
-        returning: returningMock,
-      });
-      const updateSetMock = jest.fn().mockReturnValue({
-        where: updateWhereMock,
-      });
-      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
-      db.transaction.mockImplementation(async (callback) =>
-        callback({
-          select: jest
-            .fn()
-            .mockImplementationOnce(lockedSelectMocks.selectMock)
-            .mockImplementationOnce(requerySelectMocks.selectMock),
-          update: updateMock,
-        }),
-      );
-
-      await expect(
-        capsulesRepository.updateCapsule({
-          slug: "updated-capsule",
-          password: "1234",
-          title: "수정된 캡슐",
-          version: 1,
-          openAt: "2099-12-25T12:00:00.000Z",
-        }),
-      ).rejects.toBeInstanceOf(CapsuleExpiredException);
-    });
-
-    it("잠금 조회 뒤 수정 결과가 비고 재조회 결과에 row가 남아 있으면 CapsuleUpdateConflictException을 던진다", async () => {
-      const lockedSelectMocks = buildLockedCapsuleSelectMocks({
-        id: "01TESTCAPSULEID123456789012",
-        passwordHash: buildPasswordHash("1234"),
-        openAt: new Date("2099-01-02T00:00:00.000Z"),
-        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
-        version: 2,
-      });
-      const requerySelectMocks = buildPlainCapsuleSelectMocks({
-        id: "01TESTCAPSULEID123456789012",
-        openAt: FUTURE_DATE,
-        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
-        version: 2,
-      });
-
-      const returningMock = jest.fn().mockResolvedValue([]);
-      const updateWhereMock = jest.fn().mockReturnValue({
-        returning: returningMock,
-      });
-      const updateSetMock = jest.fn().mockReturnValue({
-        where: updateWhereMock,
-      });
-      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
-      db.transaction.mockImplementation(async (callback) =>
-        callback({
-          select: jest
-            .fn()
-            .mockImplementationOnce(lockedSelectMocks.selectMock)
-            .mockImplementationOnce(requerySelectMocks.selectMock),
+          select: selectMocks.selectMock,
           update: updateMock,
         }),
       );
