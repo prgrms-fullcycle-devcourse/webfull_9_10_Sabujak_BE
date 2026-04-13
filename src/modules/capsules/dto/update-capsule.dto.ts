@@ -11,6 +11,10 @@ export const updateCapsuleBodySchema = z
   .object({
     password: passwordSchema,
     title: titleSchema,
+    version: z.number().int().positive().openapi({
+      description: "조회 시점의 캡슐 수정 버전",
+      example: capsuleMockExamples.capsuleVersion,
+    }),
     openAt: isoDateTimeStringSchema.openapi({
       description: "현재 시각 이후의 공개 예정 시각(ISO 8601)",
       example: capsuleMockExamples.openAt,

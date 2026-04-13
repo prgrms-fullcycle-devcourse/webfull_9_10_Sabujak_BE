@@ -51,6 +51,10 @@ export const capsuleBaseResponseShape = {
   expiresAt: isoDateTimeStringSchema.openapi({
     example: capsuleMockExamples.expiresAt,
   }),
+  version: z.number().int().openapi({
+    description: "캡슐 수정 optimistic locking 버전",
+    example: capsuleMockExamples.capsuleVersion,
+  }),
   createdAt: isoDateTimeStringSchema.openapi({
     example: capsuleMockExamples.now,
   }),

@@ -1,0 +1,1 @@
+ALTER TABLE "capsules" ADD COLUMN "version" integer DEFAULT 1 NOT NULL;

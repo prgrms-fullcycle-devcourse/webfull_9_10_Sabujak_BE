@@ -3,6 +3,7 @@ import {
   bigint,
   char,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -18,6 +19,7 @@ export const capsules = pgTable(
     title: varchar("title", { length: 100 }).notNull(),
     openAt: timestamp("open_at", { withTimezone: true }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    version: integer("version").default(1).notNull(),
     passwordHash: varchar("password_hash", { length: 255 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

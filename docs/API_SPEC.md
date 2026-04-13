@@ -16,6 +16,7 @@
 - 캡슐은 생성 시 `openAt`을 기준으로 `expiresAt = openAt + 7일`로 저장합니다.
 - `openAt`이 수정되면 `expiresAt`도 같은 규칙으로 함께 재계산합니다.
 - `updatedAt` 필드는 캡슐 정보의 수정뿐만 아니라, 새로운 메시지 수신 시에도 갱신되는 '최근 활동 시각'을 의미합니다.
+- `version` 필드는 캡슐 메타데이터 수정 시마다 1씩 증가하며, 수정 충돌 감지에 사용합니다.
 - `expiresAt`이 지난 캡슐은 만료 상태로 간주하며, 열람 및 작성 정책은 아래 엔드포인트 규칙을 따릅니다.
 - 캡슐 삭제는 Hard Delete로 처리합니다.
 
@@ -35,6 +36,10 @@
 - `openAt`
   - 적용 위치: `POST /capsules`, `PATCH /capsules/{slug}` body
   - 조건: `string`, Zod `datetime()` 기준의 UTC ISO 8601 일시 문자열
+- `version`
+  - 적용 위치: `PATCH /capsules/{slug}` body, `GET /capsules/{slug}` response, `POST /capsules`/`PATCH /capsules/{slug}` success response
+  - 조건: `number`, `int`, `1 이상`
+  - 의미: 캡슐 메타데이터 수정 충돌 감지를 위한 optimistic locking 버전입니다.
 - `reservationToken`
   - 적용 위치: `POST /capsules` body
   - 조건: `string`
@@ -181,6 +186,7 @@ Response `201 Created`
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
+  "version": 1,
   "createdAt": "2025-03-18T02:05:21.000Z",
   "updatedAt": "2025-03-18T02:05:21.000Z"
 }
@@ -189,6 +195,7 @@ Response `201 Created`
 규칙:
 
 - 응답의 `updatedAt` 필드는 캡슐 정보 수정 및 신규 메시지 수신 내역이 모두 반영된 '최근 활동 시각'을 의미합니다. (생성 시에는 `createdAt`과 동일)
+- 응답의 `version` 필드는 최초 생성 시 `1`로 시작합니다.
 - `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
 - `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
 - `title`은 trim 이후 `1~100자`여야 합니다.
@@ -222,6 +229,7 @@ Response `201 Created`
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
+  "version": 1,
   "createdAt": "2025-03-18T02:05:21.000Z",
   "updatedAt": "2025-03-18T02:05:21.000Z",
   "isOpen": false,
@@ -238,6 +246,7 @@ Response `201 Created`
   "title": "졸업 축하 타임캡슐",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
+  "version": 3,
   "createdAt": "2025-03-18T02:05:21.000Z",
   "updatedAt": "2025-06-01T10:00:00.000Z",
   "isOpen": true,
@@ -326,6 +335,7 @@ Request Body
 {
   "password": "1234",
   "title": "수정된 졸업 축하 방",
+  "version": 1,
   "openAt": "2025-12-25T12:00:00.000Z"
 }
 ```
@@ -340,6 +350,7 @@ Response `200 OK`
   "title": "수정된 졸업 축하 방",
   "openAt": "2025-12-25T12:00:00.000Z",
   "expiresAt": "2026-01-01T12:00:00.000Z",
+  "version": 2,
   "updatedAt": "2025-06-01T10:00:00.000Z"
 }
 ```
@@ -348,15 +359,19 @@ Response `200 OK`
 
 - path parameter `slug`는 필수이며 trim 이후 `1~50자`여야 합니다.
 - path parameter `slug`는 정규식 `^[a-z0-9]+(?:-[a-z0-9]+)*$`를 만족해야 합니다.
-- Request Body의 `password`, `title`, `openAt`은 모두 필수입니다.
+- Request Body의 `password`, `title`, `version`, `openAt`은 모두 필수입니다.
 - `password`는 숫자 `4자리`여야 합니다. (캡슐 관리자 비밀번호 원문 입력값)
 - `title`은 trim 이후 `1~100자`여야 합니다.
+- `version`은 조회 응답에서 받은 최신 정수값이어야 합니다.
 - `openAt`은 Zod `datetime()` 기준의 UTC ISO 8601 일시 문자열이어야 합니다.
 - `openAt`은 현재 시각 이후여야 합니다.
 - `openAt`이 변경되면 `expiresAt`도 즉시 재계산합니다.
+- 수정 성공 시 응답의 `version`은 기존 값보다 1 증가합니다.
 - 캡슐 내용이 수정되면 '최근 활동 시각'을 의미하는 `updatedAt`이 갱신됩니다.
 - 이미 만료된 캡슐은 수정할 수 없습니다.
 - 공개 여부와 무관하게 수정 허용 여부는 운영 정책으로 고정해야 하며, MVP에서는 `openAt` 이전까지만 수정 가능으로 정의합니다.
+- 다른 사용자가 먼저 수정해 `version`이 달라지면 `409 CAPSULE_UPDATE_CONFLICT`를 반환합니다.
+- `409 CAPSULE_UPDATE_CONFLICT` 응답은 기존 에러 구조만 유지하며, 최신 `title`, `openAt`, `version`은 `GET /capsules/{slug}` 재조회로 갱신합니다.
 
 ### 3.7 캡슐 삭제❤️
 

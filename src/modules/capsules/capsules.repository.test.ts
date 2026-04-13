@@ -4,6 +4,7 @@ import {
   CapsuleAlreadyOpenedException,
   CapsuleExpiredException,
   CapsuleNotFoundException,
+  CapsuleUpdateConflictException,
   DuplicateNicknameException,
   ForbiddenPasswordException,
   InvalidInputException,
@@ -1165,6 +1166,7 @@ describe("CapsulesRepository", () => {
           slug: "missing-capsule",
           password: "1234",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(CapsuleNotFoundException);
@@ -1185,6 +1187,7 @@ describe("CapsulesRepository", () => {
           slug: "missing-fields-capsule",
           password: "1234",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(CapsuleNotFoundException);
@@ -1196,6 +1199,7 @@ describe("CapsulesRepository", () => {
         passwordHash: buildPasswordHash("1234"),
         openAt: FUTURE_DATE,
         expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+        version: 1,
       });
       db.transaction.mockImplementation(async (callback) =>
         callback({
@@ -1208,6 +1212,7 @@ describe("CapsulesRepository", () => {
           slug: "opened-capsule",
           password: "9999",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(ForbiddenPasswordException);
@@ -1219,6 +1224,7 @@ describe("CapsulesRepository", () => {
         passwordHash: buildPasswordHash("1234"),
         openAt: new Date("1999-12-25T00:00:00.000Z"),
         expiresAt: PAST_DATE,
+        version: 1,
       });
       db.transaction.mockImplementation(async (callback) =>
         callback({
@@ -1231,6 +1237,7 @@ describe("CapsulesRepository", () => {
           slug: "expired-capsule",
           password: "1234",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(CapsuleExpiredException);
@@ -1242,6 +1249,7 @@ describe("CapsulesRepository", () => {
         passwordHash: buildPasswordHash("1234"),
         openAt: PAST_DATE,
         expiresAt: FUTURE_DATE,
+        version: 1,
       });
       db.transaction.mockImplementation(async (callback) =>
         callback({
@@ -1254,6 +1262,7 @@ describe("CapsulesRepository", () => {
           slug: "opened-capsule",
           password: "1234",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2099-12-25T12:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(CapsuleAlreadyOpenedException);
@@ -1265,6 +1274,7 @@ describe("CapsulesRepository", () => {
         passwordHash: buildPasswordHash("1234"),
         openAt: FUTURE_DATE,
         expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+        version: 1,
       });
       db.transaction.mockImplementation(async (callback) =>
         callback({
@@ -1277,26 +1287,54 @@ describe("CapsulesRepository", () => {
           slug: "opened-capsule",
           password: "1234",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2000-01-01T00:00:00.000Z",
         }),
       ).rejects.toBeInstanceOf(InvalidInputException);
     });
 
-    it("잠금 조회 뒤 수정 결과가 비어 있으면 CapsuleNotFoundException을 던진다", async () => {
+    it("버전이 일치하지 않으면 CapsuleUpdateConflictException을 던진다", async () => {
       const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
-        openAt: FUTURE_DATE,
-        expiresAt: new Date("2099-01-08T00:00:00.000Z"),
+        openAt: new Date("2099-01-02T00:00:00.000Z"),
+        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
+        version: 2,
+      });
+
+      db.transaction.mockImplementation(async (callback) =>
+        callback({
+          select: selectMocks.selectMock,
+        }),
+      );
+
+      await expect(
+        capsulesRepository.updateCapsule({
+          slug: "updated-capsule",
+          password: "1234",
+          title: "수정된 캡슐",
+          version: 1,
+          openAt: "2099-12-25T12:00:00.000Z",
+        }),
+      ).rejects.toBeInstanceOf(CapsuleUpdateConflictException);
+    });
+
+    it("수정 쿼리 결과가 0건이면 CapsuleUpdateConflictException을 던진다", async () => {
+      const selectMocks = buildLockedCapsuleSelectMocks({
+        id: "01TESTCAPSULEID123456789012",
+        passwordHash: buildPasswordHash("1234"),
+        openAt: new Date("2099-01-02T00:00:00.000Z"),
+        expiresAt: new Date("2099-01-09T00:00:00.000Z"),
+        version: 1,
       });
 
       const returningMock = jest.fn().mockResolvedValue([]);
       const updateWhereMock = jest.fn().mockReturnValue({
         returning: returningMock,
       });
-      const updateSetMock = jest
-        .fn()
-        .mockReturnValue({ where: updateWhereMock });
+      const updateSetMock = jest.fn().mockReturnValue({
+        where: updateWhereMock,
+      });
       const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
 
       db.transaction.mockImplementation(async (callback) =>
@@ -1311,17 +1349,19 @@ describe("CapsulesRepository", () => {
           slug: "updated-capsule",
           password: "1234",
           title: "수정된 캡슐",
+          version: 1,
           openAt: "2099-12-25T12:00:00.000Z",
         }),
-      ).rejects.toBeInstanceOf(CapsuleNotFoundException);
+      ).rejects.toBeInstanceOf(CapsuleUpdateConflictException);
     });
 
-    it("수정 가능 상태면 트랜잭션 내부에서 잠금 조회 후 openAt 기준으로 expiresAt을 재계산해 저장한다", async () => {
+    it("수정 가능 상태면 트랜잭션 내부에서 잠금 조회 후 openAt 기준으로 expiresAt과 version을 갱신해 저장한다", async () => {
       const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
         openAt: new Date("2099-01-02T00:00:00.000Z"),
         expiresAt: new Date("2099-01-09T00:00:00.000Z"),
+        version: 1,
       });
 
       const returningMock = jest.fn().mockResolvedValue([
@@ -1331,6 +1371,7 @@ describe("CapsulesRepository", () => {
           title: "수정된 캡슐",
           openAt: new Date("2099-12-25T12:00:00.000Z"),
           expiresAt: new Date("2100-01-01T12:00:00.000Z"),
+          version: 2,
           createdAt: new Date("2026-03-23T00:00:00.000Z"),
           updatedAt: new Date("2026-03-25T00:00:00.000Z"),
         },
@@ -1353,6 +1394,7 @@ describe("CapsulesRepository", () => {
         slug: "updated-capsule",
         password: "1234",
         title: "수정된 캡슐",
+        version: 1,
         openAt: "2099-12-25T12:00:00.000Z",
       });
 
@@ -1364,15 +1406,18 @@ describe("CapsulesRepository", () => {
           title: "수정된 캡슐",
           openAt: new Date("2099-12-25T12:00:00.000Z"),
           expiresAt: new Date("2100-01-01T12:00:00.000Z"),
+          version: 2,
           updatedAt: expect.any(Date),
         }),
       );
+      expect(updateWhereMock).toHaveBeenCalledWith(expect.anything());
       expect(result).toEqual({
         id: "01TESTCAPSULEID123456789012",
         slug: "updated-capsule",
         title: "수정된 캡슐",
         openAt: "2099-12-25T12:00:00.000Z",
         expiresAt: "2100-01-01T12:00:00.000Z",
+        version: 2,
         createdAt: "2026-03-23T00:00:00.000Z",
         updatedAt: "2026-03-25T00:00:00.000Z",
       });

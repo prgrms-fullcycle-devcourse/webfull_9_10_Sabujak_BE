@@ -6,6 +6,7 @@ const MOCK_RESERVED_UNTIL = "2026-03-18T02:10:21.000Z";
 const MOCK_RESERVATION_TOKEN = "01HQX7Y8J6R8J2E5W4C2R9A1BC";
 const MOCK_RESERVATION_SESSION_TOKEN = "01HQX7Y8J6R8J2E5W4C2R9A1ZZ";
 const MOCK_CAPSULE_ID = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+const MOCK_CAPSULE_VERSION = 1;
 
 const getStringValue = (value: unknown, fallback: string) =>
   typeof value === "string" && value.trim().length > 0
@@ -21,6 +22,7 @@ export const capsuleMockExamples = {
   reservationToken: MOCK_RESERVATION_TOKEN,
   reservationSessionToken: MOCK_RESERVATION_SESSION_TOKEN,
   capsuleId: MOCK_CAPSULE_ID,
+  capsuleVersion: MOCK_CAPSULE_VERSION,
   defaultSlug: "our-graduation-2025",
   openedSlug: "opened-capsule",
   defaultTitle: "졸업 축하 타임캡슐",
@@ -38,6 +40,7 @@ export const buildCapsuleBaseMock = (input: {
   title: getStringValue(input.title, capsuleMockExamples.defaultTitle),
   openAt: getStringValue(input.openAt, MOCK_OPEN_AT),
   expiresAt: MOCK_EXPIRES_AT,
+  version: MOCK_CAPSULE_VERSION,
   createdAt: MOCK_NOW,
   updatedAt: MOCK_NOW,
 });

@@ -195,6 +195,7 @@ describe("CapsulesService", () => {
       title: "새 캡슐",
       openAt: "2026-04-03T00:00:00.000Z",
       expiresAt: "2026-04-10T00:00:00.000Z",
+      version: 1,
       createdAt: "2026-04-03T00:00:00.000Z",
       updatedAt: "2026-04-03T00:00:00.000Z",
     });
@@ -231,6 +232,7 @@ describe("CapsulesService", () => {
       title: "새 캡슐",
       openAt: "2026-04-03T00:00:00.000Z",
       expiresAt: "2026-04-10T00:00:00.000Z",
+      version: 1,
       createdAt: "2026-04-03T00:00:00.000Z",
       updatedAt: "2026-04-03T00:00:00.000Z",
     });
@@ -250,6 +252,7 @@ describe("CapsulesService", () => {
       title: "새 캡슐",
       openAt: "2026-04-03T00:00:00.000Z",
       expiresAt: "2026-04-10T00:00:00.000Z",
+      version: 1,
       createdAt: "2026-04-03T00:00:00.000Z",
       updatedAt: "2026-04-03T00:00:00.000Z",
     });

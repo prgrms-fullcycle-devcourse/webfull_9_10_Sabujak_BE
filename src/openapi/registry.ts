@@ -35,6 +35,8 @@ const errorMessages = {
   MESSAGE_LIMIT_EXCEEDED: "메시지 작성 가능 개수를 초과했습니다.",
   CAPSULE_EXPIRED: "만료된 캡슐입니다.",
   CAPSULE_ALREADY_OPENED: "이미 공개된 캡슐입니다.",
+  CAPSULE_UPDATE_CONFLICT:
+    "다른 사용자가 먼저 수정했어요. 최신 정보를 확인한 뒤 다시 저장해 주세요.",
   TOO_MANY_REQUESTS: "요청 횟수 제한을 초과했습니다.",
   INTERNAL_SERVER_ERROR: "서버 내부 오류가 발생했습니다.",
 } as const;
@@ -211,6 +213,7 @@ registry.registerPath({
                 title: capsuleMockExamples.defaultTitle,
                 openAt: capsuleMockExamples.openAt,
                 expiresAt: capsuleMockExamples.expiresAt,
+                version: capsuleMockExamples.capsuleVersion,
                 createdAt: capsuleMockExamples.now,
                 updatedAt: capsuleMockExamples.now,
                 isOpen: false,
@@ -225,6 +228,7 @@ registry.registerPath({
                 title: capsuleMockExamples.defaultTitle,
                 openAt: capsuleMockExamples.openAt,
                 expiresAt: capsuleMockExamples.expiresAt,
+                version: capsuleMockExamples.capsuleVersion,
                 createdAt: capsuleMockExamples.now,
                 updatedAt: capsuleMockExamples.openedUpdatedAt,
                 isOpen: true,
@@ -314,7 +318,7 @@ registry.registerPath({
   tags: ["Capsule"],
   summary: "캡슐 수정❤️",
   description:
-    "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다. 동시 수정/삭제 충돌이 있더라도 서버 오류 대신 현재 상태를 다시 판정해 404/409/410으로 응답합니다.",
+    "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다. 수정 충돌은 version 기반 optimistic locking으로 감지하며, 409 응답 후 최신값은 재조회로 갱신합니다.",
   request: {
     params: capsuleSlugParamsSchema,
     body: {
@@ -338,7 +342,10 @@ registry.registerPath({
     400: buildErrorResponse("INVALID_INPUT"),
     403: buildErrorResponse("FORBIDDEN_PASSWORD"),
     404: buildErrorResponse("CAPSULE_NOT_FOUND"),
-    409: buildErrorResponse("CAPSULE_ALREADY_OPENED"),
+    409: buildErrorResponses(
+      "CAPSULE_ALREADY_OPENED",
+      "CAPSULE_UPDATE_CONFLICT",
+    ),
     410: buildErrorResponse("CAPSULE_EXPIRED"),
     500: buildErrorResponse("INTERNAL_SERVER_ERROR"),
   },

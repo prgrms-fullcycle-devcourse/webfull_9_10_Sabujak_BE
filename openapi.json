@@ -62,6 +62,7 @@
                   "MESSAGE_LIMIT_EXCEEDED",
                   "CAPSULE_EXPIRED",
                   "CAPSULE_ALREADY_OPENED",
+                  "CAPSULE_UPDATE_CONFLICT",
                   "TOO_MANY_REQUESTS",
                   "INTERNAL_SERVER_ERROR"
                 ]
@@ -157,6 +158,11 @@
             "format": "date-time",
             "example": "2026-01-01T12:00:00.000Z"
           },
+          "version": {
+            "type": "integer",
+            "description": "캡슐 수정 optimistic locking 버전",
+            "example": 1
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -174,6 +180,7 @@
           "title",
           "openAt",
           "expiresAt",
+          "version",
           "createdAt",
           "updatedAt"
         ]
@@ -277,6 +284,11 @@
                 "format": "date-time",
                 "example": "2026-01-01T12:00:00.000Z"
               },
+              "version": {
+                "type": "integer",
+                "description": "캡슐 수정 optimistic locking 버전",
+                "example": 1
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time",
@@ -303,6 +315,7 @@
               "title",
               "openAt",
               "expiresAt",
+              "version",
               "createdAt",
               "updatedAt",
               "isOpen",
@@ -340,6 +353,11 @@
                 "format": "date-time",
                 "example": "2026-01-01T12:00:00.000Z"
               },
+              "version": {
+                "type": "integer",
+                "description": "캡슐 수정 optimistic locking 버전",
+                "example": 1
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time",
@@ -373,6 +391,7 @@
               "title",
               "openAt",
               "expiresAt",
+              "version",
               "createdAt",
               "updatedAt",
               "isOpen",
@@ -467,6 +486,11 @@
             "format": "date-time",
             "example": "2026-01-01T12:00:00.000Z"
           },
+          "version": {
+            "type": "integer",
+            "description": "캡슐 수정 optimistic locking 버전",
+            "example": 1
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time",
@@ -484,6 +508,7 @@
           "title",
           "openAt",
           "expiresAt",
+          "version",
           "createdAt",
           "updatedAt"
         ]
@@ -502,6 +527,13 @@
             "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
           },
+          "version": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "description": "조회 시점의 캡슐 수정 버전",
+            "example": 1
+          },
           "openAt": {
             "type": "string",
             "format": "date-time",
@@ -509,7 +541,7 @@
             "description": "현재 시각 이후의 공개 예정 시각(ISO 8601)"
           }
         },
-        "required": ["password", "title", "openAt"]
+        "required": ["password", "title", "version", "openAt"]
       },
       "DeleteCapsuleRequest": {
         "type": "object",
@@ -873,6 +905,7 @@
                       "title": "졸업 축하 타임캡슐",
                       "openAt": "2025-12-25T12:00:00.000Z",
                       "expiresAt": "2026-01-01T12:00:00.000Z",
+                      "version": 1,
                       "createdAt": "2025-03-18T02:05:21.000Z",
                       "updatedAt": "2025-03-18T02:05:21.000Z",
                       "isOpen": false,
@@ -887,6 +920,7 @@
                       "title": "졸업 축하 타임캡슐",
                       "openAt": "2025-12-25T12:00:00.000Z",
                       "expiresAt": "2026-01-01T12:00:00.000Z",
+                      "version": 1,
                       "createdAt": "2025-03-18T02:05:21.000Z",
                       "updatedAt": "2025-06-01T10:00:00.000Z",
                       "isOpen": true,
@@ -970,7 +1004,7 @@
       "patch": {
         "tags": ["Capsule"],
         "summary": "캡슐 수정❤️",
-        "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다. 동시 수정/삭제 충돌이 있더라도 서버 오류 대신 현재 상태를 다시 판정해 404/409/410으로 응답합니다.",
+        "description": "관리자 비밀번호 검증 후 캡슐 제목과 공개 시각을 수정합니다. openAt은 현재 시각 이후여야 하며, 변경 시 expiresAt을 함께 재계산합니다. 수정 충돌은 version 기반 optimistic locking으로 감지하며, 409 응답 후 최신값은 재조회로 갱신합니다.",
         "parameters": [
           {
             "schema": {
@@ -1069,7 +1103,7 @@
             }
           },
           "409": {
-            "description": "CAPSULE_ALREADY_OPENED",
+            "description": "CAPSULE_ALREADY_OPENED | CAPSULE_UPDATE_CONFLICT",
             "content": {
               "application/json": {
                 "schema": {
@@ -1081,6 +1115,14 @@
                       "error": {
                         "code": "CAPSULE_ALREADY_OPENED",
                         "message": "이미 공개된 캡슐입니다."
+                      }
+                    }
+                  },
+                  "capsule_update_conflict": {
+                    "value": {
+                      "error": {
+                        "code": "CAPSULE_UPDATE_CONFLICT",
+                        "message": "다른 사용자가 먼저 수정했어요. 최신 정보를 확인한 뒤 다시 저장해 주세요."
                       }
                     }
                   }
