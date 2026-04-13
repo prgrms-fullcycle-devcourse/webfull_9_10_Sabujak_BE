@@ -110,6 +110,7 @@ flowchart LR
 
 - [API 명세서](./docs/API_SPEC.md)
 - [ERD](./docs/ERD.md)
+- [DB 스키마 가이드](./docs/db-guide.md)
 - [Mock API 명세서](./docs/MOCK_API_SPEC.md)
 - [OpenAPI JSON](./openapi.json)
 - [QA 보고서 위치 안내](./docs/reports/README.md)
@@ -125,10 +126,12 @@ flowchart LR
 ## Development Workflow
 
 1. 기능 요구사항을 기준으로 `docs/API_SPEC.md`와 필요 시 `docs/ERD.md`를 먼저 갱신합니다.
-2. DB 모델과 스키마 구조를 Drizzle 기준으로 정리하고, `drizzle-zod`와 Zod 스키마 흐름에 맞게 입력/응답 형태를 맞춥니다.
-3. 서버 라우트와 도메인 로직을 구현한 뒤 OpenAPI 산출물을 생성하거나 검증합니다.
-4. 생성된 OpenAPI 스펙을 기준으로 프론트엔드에서 Orval 클라이언트를 연동해 API 타입과 호출 코드를 동기화합니다.
-5. Swagger UI, 로컬 실행, 배포 환경(Render/Neon)에서 최종 동작을 확인합니다.
+2. DB 스키마는 `src/db/schema.ts`와 `drizzle/*`만 정본으로 관리하고, `pnpm run db:generate -> db:migrate -> db:schema:export -> db:schema:check` 순서로 반영합니다.
+3. `docs/schema.sql`은 Drizzle 기준 참조 스냅샷이며 직접 실행하지 않습니다.
+4. 배포 환경에서는 앱 기동 전에 운영 `DATABASE_URL` 기준 `pnpm run db:migrate`를 먼저 실행하고, 서버 시작이 migration을 대체하지 않도록 유지합니다.
+5. 서버 라우트와 도메인 로직을 구현한 뒤 OpenAPI 산출물을 생성하거나 검증합니다.
+6. 생성된 OpenAPI 스펙을 기준으로 프론트엔드에서 Orval 클라이언트를 연동해 API 타입과 호출 코드를 동기화합니다.
+7. Swagger UI, 로컬 실행, 배포 환경(Render/Neon)에서 최종 동작을 확인합니다.
 
 ## Getting Started
 
@@ -170,17 +173,22 @@ pnpm run dev
 
 ## Available Scripts
 
-| Command                     | Description                   |
-| --------------------------- | ----------------------------- |
-| `pnpm run dev`              | 개발 서버 실행                |
-| `pnpm run build`            | 프로덕션 번들 생성            |
-| `pnpm run start`            | 빌드 결과 실행                |
-| `pnpm run typecheck`        | 타입 검사                     |
-| `pnpm run lint`             | 린트 검사                     |
-| `pnpm run lint:fix`         | 린트 자동 수정                |
-| `pnpm run openapi:generate` | OpenAPI 문서 생성             |
-| `pnpm run openapi:check`    | OpenAPI 산출물 검증           |
-| `pnpm run test:rate-limit`  | rate limit 관련 스크립트 실행 |
+| Command                           | Description                   |
+| --------------------------------- | ----------------------------- |
+| `pnpm run dev`                    | 개발 서버 실행                |
+| `pnpm run build`                  | 프로덕션 번들 생성            |
+| `pnpm run start`                  | 빌드 결과 실행                |
+| `pnpm run typecheck`              | 타입 검사                     |
+| `pnpm run lint`                   | 린트 검사                     |
+| `pnpm run lint:fix`               | 린트 자동 수정                |
+| `pnpm run db:generate`            | Drizzle migration 생성        |
+| `pnpm run db:migrate`             | Drizzle migration 적용        |
+| `pnpm run db:schema:export`       | `docs/schema.sql` 스냅샷 갱신 |
+| `pnpm run db:schema:check`        | DB 스키마 워크플로우 검증     |
+| `pnpm run db:repair:legacy-drift` | legacy drift 수동 복구        |
+| `pnpm run openapi:generate`       | OpenAPI 문서 생성             |
+| `pnpm run openapi:check`          | OpenAPI 산출물 검증           |
+| `pnpm run test:rate-limit`        | rate limit 관련 스크립트 실행 |
 
 ## API Entry Points
 
@@ -225,7 +233,9 @@ pnpm run dev
 ## Collaboration Guide
 
 - API 변경 시 `docs/API_SPEC.md`와 `openapi.json`을 함께 갱신합니다.
-- 데이터 모델 변경 시 `docs/ERD.md`도 함께 반영합니다.
+- 데이터 모델 변경 시 `docs/ERD.md`와 `docs/db-guide.md` 흐름도 함께 반영합니다.
+- DB 변경은 수동 SQL 대신 Drizzle migration만 사용합니다.
+- 배포 시 DB migration은 앱 시작 전에 한 번만 실행하고, 서버 재기동으로 스키마를 맞추지 않습니다.
 - 외부 입력은 Zod 스키마로 검증하는 규칙을 유지합니다.
 - 민감 정보는 `.env.example`이 아닌 실제 `.env` 또는 배포 환경 변수로 관리합니다.
 

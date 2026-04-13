@@ -31,8 +31,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -51,6 +51,9 @@ jobs:
 
       - name: Check OpenAPI
         run: pnpm openapi:check
+
+      - name: Check DB schema workflow
+        run: pnpm db:schema:check
 
       - name: Build project
         run: pnpm build

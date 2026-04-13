@@ -3,10 +3,7 @@ jest.mock("./capsules.service", () => ({
     createSlugReservation: jest.fn(),
     createCapsule: jest.fn(),
     getCapsule: jest.fn(),
-    getCapsuleStats: jest.fn().mockResolvedValue({
-      totalCapsuleCount: 12,
-      totalMessageCount: 77,
-    }),
+    getCapsuleStats: jest.fn(),
     getMessageCount: jest.fn(),
     verifyCapsulePassword: jest.fn(),
     updateCapsule: jest.fn(),
@@ -15,69 +12,43 @@ jest.mock("./capsules.service", () => ({
   },
 }));
 
-import { AddressInfo } from "node:net";
-import app from "../../app";
+jest.mock("./capsule-stats.publisher", () => ({
+  capsuleStatsPublisher: {
+    clear: jest.fn(),
+    subscribe: jest.fn(),
+  },
+}));
+
 import { capsuleStatsPublisher } from "./capsule-stats.publisher";
 import { capsulesService } from "./capsules.service";
+import { streamCapsuleStats } from "./capsules.controller";
 
 const mockedCapsulesService = jest.mocked(capsulesService);
+const mockedPublisher = jest.mocked(capsuleStatsPublisher);
 
-describe("GET /capsules/stats/stream", () => {
+describe("streamCapsuleStats", () => {
   afterEach(() => {
-    capsuleStatsPublisher.clear();
     jest.clearAllMocks();
+  });
+
+  it("publisher에 response와 snapshot getter를 전달한다", async () => {
+    const response = { locals: {} } as never;
     mockedCapsulesService.getCapsuleStats.mockResolvedValue({
       totalCapsuleCount: 12,
       totalMessageCount: 77,
     });
-  });
 
-  it("SSE 헤더와 초기 전역 집계 이벤트를 보낸다", async () => {
-    const server = await new Promise<ReturnType<typeof app.listen>>(
-      (resolve) => {
-        const listeningServer = app.listen(0, () => resolve(listeningServer));
-      },
-    );
-    const address = server.address() as AddressInfo;
-    const controller = new AbortController();
+    let capturedInput!: Parameters<typeof mockedPublisher.subscribe>[0];
+    mockedPublisher.subscribe.mockImplementation(async (input) => {
+      capturedInput = input;
+      await input.getSnapshot();
+      return () => undefined;
+    });
 
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:${address.port}/capsules/stats/stream`,
-        {
-          signal: controller.signal,
-          headers: {
-            Accept: "text/event-stream",
-          },
-        },
-      );
+    await streamCapsuleStats({} as never, response);
 
-      expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain(
-        "text/event-stream",
-      );
-      expect(response.headers.get("cache-control")).toContain("no-cache");
-
-      const reader = response.body?.getReader();
-      const chunk = await reader?.read();
-      const body = new TextDecoder().decode(chunk?.value);
-
-      expect(body).toContain("event: capsuleStats");
-      expect(body).toContain('"totalCapsuleCount":12');
-      expect(body).toContain('"totalMessageCount":77');
-
-      controller.abort();
-    } finally {
-      await new Promise<void>((resolve, reject) => {
-        server.close((error) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-
-          resolve();
-        });
-      });
-    }
+    expect(mockedPublisher.subscribe).toHaveBeenCalledTimes(1);
+    expect(capturedInput.response).toBe(response);
+    expect(mockedCapsulesService.getCapsuleStats).toHaveBeenCalledTimes(1);
   });
 });
