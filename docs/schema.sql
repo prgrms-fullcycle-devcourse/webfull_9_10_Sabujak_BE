@@ -3,7 +3,7 @@
 -- Do not apply this file directly. Use Drizzle migration commands instead.
 
 CREATE TABLE "capsules" (
-	"id" char(26) PRIMARY KEY NOT NULL,
+	"id" char(26) PRIMARY KEY,
 	"slug" varchar(50) NOT NULL,
 	"title" varchar(100) NOT NULL,
 	"open_at" timestamp with time zone NOT NULL,
@@ -22,8 +22,8 @@ CREATE TABLE "messages" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-ALTER TABLE "messages" ADD CONSTRAINT "messages_capsule_id_capsules_id_fk" FOREIGN KEY ("capsule_id") REFERENCES "public"."capsules"("id") ON DELETE cascade ON UPDATE no action;
-CREATE UNIQUE INDEX "capsules_slug_unq" ON "capsules" USING btree ("slug");
-CREATE INDEX "capsules_expires_at_idx" ON "capsules" USING btree ("expires_at");
-CREATE UNIQUE INDEX "messages_capsule_id_nickname_unq" ON "messages" USING btree ("capsule_id","nickname");
-CREATE INDEX "messages_capsule_id_id_idx" ON "messages" USING btree ("capsule_id","id");
+CREATE UNIQUE INDEX "capsules_slug_unq" ON "capsules" ("slug");
+CREATE INDEX "capsules_expires_at_idx" ON "capsules" ("expires_at");
+CREATE UNIQUE INDEX "messages_capsule_id_nickname_unq" ON "messages" ("capsule_id","nickname");
+CREATE INDEX "messages_capsule_id_id_idx" ON "messages" ("capsule_id","id");
+ALTER TABLE "messages" ADD CONSTRAINT "messages_capsule_id_capsules_id_fkey" FOREIGN KEY ("capsule_id") REFERENCES "capsules"("id") ON DELETE CASCADE;
