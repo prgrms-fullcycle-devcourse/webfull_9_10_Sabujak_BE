@@ -1,3 +1,4 @@
+import { insertCapsuleBaseSchema } from "../../../db/schema";
 import { z } from "../../../openapi/zod-extend";
 import { capsuleMockExamples } from "../../../mocks/capsule.mock";
 import {
@@ -8,8 +9,13 @@ import {
   titleSchema,
 } from "./shared.dto";
 
-export const createCapsuleBodySchema = z
-  .object({
+export const createCapsuleBodySchema = insertCapsuleBaseSchema
+  .pick({
+    slug: true,
+    title: true,
+    openAt: true,
+  })
+  .extend({
     slug: slugSchema,
     title: titleSchema,
     password: passwordSchema,
@@ -23,8 +29,29 @@ export const createCapsuleBodySchema = z
       example: capsuleMockExamples.reservationSessionToken,
     }),
   })
-  .openapi("CreateCapsuleRequest");
+  .openapi("CreateCapsuleRequest", {
+    example: {
+      slug: capsuleMockExamples.defaultSlug,
+      title: capsuleMockExamples.defaultTitle,
+      password: "1234",
+      openAt: capsuleMockExamples.openAt,
+      reservationToken: capsuleMockExamples.reservationToken,
+      reservationSessionToken: capsuleMockExamples.reservationSessionToken,
+    },
+  });
 
 export const createCapsuleResponseSchema = capsuleBaseResponseSchema.openapi(
   "CreateCapsuleResponse",
+  {
+    example: {
+      id: capsuleMockExamples.capsuleId,
+      slug: capsuleMockExamples.defaultSlug,
+      title: capsuleMockExamples.defaultTitle,
+      openAt: capsuleMockExamples.openAt,
+      expiresAt: capsuleMockExamples.expiresAt,
+      version: capsuleMockExamples.capsuleVersion,
+      createdAt: capsuleMockExamples.now,
+      updatedAt: capsuleMockExamples.now,
+    },
+  },
 );
