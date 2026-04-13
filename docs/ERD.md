@@ -19,6 +19,7 @@ erDiagram
         varchar(100) title "방 제목"
         timestamptz open_at "공개 일시"
         timestamptz expires_at "만료 일시 (open_at + 7일)"
+        integer version "수정 optimistic locking 버전"
         varchar(255) password_hash "관리자 비밀번호 4자리 숫자의 hash"
         timestamptz created_at "생성 일시"
         timestamptz updated_at "수정 일시"
@@ -46,6 +47,7 @@ erDiagram
 | title         | varchar(100) | -     | 방 제목                                                  |
 | open_at       | timestamptz  | -     | 공개 일시                                                |
 | expires_at    | timestamptz  | INDEX | 만료 일시 (`open_at + 7일`)                              |
+| version       | integer      | -     | 캡슐 메타데이터 수정 optimistic locking 버전             |
 | password_hash | varchar(255) | -     | 관리자 비밀번호 4자리 숫자의 hash                        |
 | created_at    | timestamptz  | -     | 생성 일시                                                |
 | updated_at    | timestamptz  | -     | 마지막 수정 일시 (정보 변경 및 신규 메시지 수신 시 갱신) |
@@ -54,6 +56,7 @@ erDiagram
 
 - `slug`는 unique constraint가 필요합니다.
 - `expires_at`는 생성 시 계산 저장하며, `open_at` 변경 시 함께 재계산합니다.
+- `version`은 생성 시 `1`로 시작하고, 캡슐 메타데이터 수정 성공 시 1 증가합니다.
 - `password_hash`는 캡슐 관리자용 숫자 4자리 비밀번호 원문을 저장 전 hash 처리한 값을 저장합니다.
 
 ### messages

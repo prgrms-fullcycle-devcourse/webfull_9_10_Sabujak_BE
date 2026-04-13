@@ -1,4 +1,4 @@
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 import { logger } from "../../common/utils/logger";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
@@ -15,6 +15,7 @@ import {
   CapsuleExpiredException,
   CapsuleAlreadyOpenedException,
   CapsuleNotFoundException,
+  CapsuleUpdateConflictException,
   DuplicateNicknameException,
   ForbiddenPasswordException,
   InvalidInputException,
@@ -382,6 +383,7 @@ export class CapsulesRepository {
         title: createdCapsule.title,
         openAt: createdCapsule.openAt.toISOString(),
         expiresAt: createdCapsule.expiresAt.toISOString(),
+        version: createdCapsule.version,
         createdAt: createdCapsule.createdAt.toISOString(),
         updatedAt: createdCapsule.updatedAt.toISOString(),
       };
@@ -432,6 +434,7 @@ export class CapsulesRepository {
         title: true,
         openAt: true,
         expiresAt: true,
+        version: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -454,6 +457,7 @@ export class CapsulesRepository {
       title: capsule.title,
       openAt: capsule.openAt.toISOString(),
       expiresAt: capsule.expiresAt.toISOString(),
+      version: capsule.version,
       createdAt: capsule.createdAt.toISOString(),
       updatedAt: capsule.updatedAt.toISOString(),
     };
@@ -561,6 +565,7 @@ export class CapsulesRepository {
           passwordHash: capsules.passwordHash,
           openAt: capsules.openAt,
           expiresAt: capsules.expiresAt,
+          version: capsules.version,
         })
         .from(capsules)
         .where(eq(capsules.slug, input.slug))
@@ -571,7 +576,8 @@ export class CapsulesRepository {
         !capsule?.id ||
         !capsule.passwordHash ||
         !capsule.openAt ||
-        !capsule.expiresAt
+        !capsule.expiresAt ||
+        typeof capsule.version !== "number"
       ) {
         throw new CapsuleNotFoundException();
       }
@@ -610,13 +616,42 @@ export class CapsulesRepository {
           title: input.title,
           openAt: newOpenAt,
           expiresAt: newExpiresAt,
+          version: capsule.version + 1,
           updatedAt: new Date(),
         })
-        .where(eq(capsules.slug, input.slug))
+        .where(
+          and(
+            eq(capsules.slug, input.slug),
+            eq(capsules.version, input.version),
+          ),
+        )
         .returning();
 
       if (!updatedCapsule) {
-        throw new CapsuleNotFoundException();
+        const [currentCapsule] = await tx
+          .select({
+            id: capsules.id,
+            openAt: capsules.openAt,
+            expiresAt: capsules.expiresAt,
+            version: capsules.version,
+          })
+          .from(capsules)
+          .where(eq(capsules.slug, input.slug))
+          .limit(1);
+
+        if (!currentCapsule?.id) {
+          throw new CapsuleNotFoundException();
+        }
+
+        if (currentCapsule.expiresAt.getTime() <= now) {
+          throw new CapsuleExpiredException();
+        }
+
+        if (currentCapsule.openAt.getTime() <= now) {
+          throw new CapsuleAlreadyOpenedException();
+        }
+
+        throw new CapsuleUpdateConflictException();
       }
 
       return {
@@ -625,6 +660,7 @@ export class CapsulesRepository {
         title: updatedCapsule.title,
         openAt: updatedCapsule.openAt.toISOString(),
         expiresAt: updatedCapsule.expiresAt.toISOString(),
+        version: updatedCapsule.version,
         createdAt: updatedCapsule.createdAt.toISOString(),
         updatedAt: updatedCapsule.updatedAt.toISOString(),
       };

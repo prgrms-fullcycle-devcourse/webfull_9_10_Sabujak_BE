@@ -8,6 +8,13 @@
       "when": 1773981178817,
       "tag": "0000_faulty_mariko_yashida",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776054564909,
+      "tag": "0001_modern_masked_marvel",
+      "breakpoints": true
     }
   ]
 }

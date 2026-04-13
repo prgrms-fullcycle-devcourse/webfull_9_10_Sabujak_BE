@@ -8,6 +8,7 @@ export const errorCodes = [
   "MESSAGE_LIMIT_EXCEEDED",
   "CAPSULE_EXPIRED",
   "CAPSULE_ALREADY_OPENED",
+  "CAPSULE_UPDATE_CONFLICT",
   "TOO_MANY_REQUESTS",
   "INTERNAL_SERVER_ERROR",
 ] as const;
@@ -85,6 +86,15 @@ export class CapsuleAlreadyOpenedException extends DomainException {
   constructor(message = "이미 공개된 캡슐입니다.") {
     super(409, "CAPSULE_ALREADY_OPENED", message);
     this.name = "CapsuleAlreadyOpenedException";
+  }
+}
+
+export class CapsuleUpdateConflictException extends DomainException {
+  constructor(
+    message = "다른 사용자가 먼저 수정했어요. 최신 정보를 확인한 뒤 다시 저장해 주세요.",
+  ) {
+    super(409, "CAPSULE_UPDATE_CONFLICT", message);
+    this.name = "CapsuleUpdateConflictException";
   }
 }
 
