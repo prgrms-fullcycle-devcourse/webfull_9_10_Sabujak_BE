@@ -1,108 +1,136 @@
-# 🏛 Sabujak BE 아키텍처 & DI 온보딩 가이드
+# Sabujak BE 아키텍처 가이드
 
-새롭게 도입된 **NestJS 스타일의 계층형 아키텍처(Layered Architecture)** 와 **의존성 주입(Dependency Injection, DI)** 패턴에 익숙하지 않은 팀원분들을 위한 가이드입니다.
+이 문서는 현재 저장소의 실제 구조를 기준으로, 요청이 어떤 순서로 흘러가고 어떤 파일을 먼저 보면 되는지 정리한 가이드입니다.
 
----
-
-## 1. 계층형 아키텍처 (Layered Architecture)란?
-
-기존에는 라우팅, HTTP 요청 파싱, 비즈니스 로직, DB 조작이 단일 파일이나 산발적인 구조에 섞여 있었습니다. 이를 **역할(관심사)에 따라 3개의 계층**으로 분리하여 코드의 가독성과 유지보수성을 극대화하는 아키텍처입니다.
-
-### 🛡 3 Tier 계층의 역할
-
-1. **Controller (표현 계층)**
-   - HTTP 요청(`req`)과 응답(`res`)만을 처리합니다.
-   - 클라이언트가 보낸 데이터를 검증(DTO, Zod)하고, 성공/실패에 따른 적절한 HTTP Status 코드를 반환합니다.
-   - ❌ _이곳에는 핵심 비즈니스 로직이나 DB 쿼리가 직접 들어가서는 안 됩니다._
-2. **Service (비즈니스 계층)**
-   - 서비스의 핵심적인 **비즈니스 로직**을 담당합니다. (예: 슬러그 중복 검증, 권한 체크, 데이터 가공 등)
-   - Controller로부터 데이터를 받아 판단을 내리고, 필요시 Repository에 DB 조작을 요청합니다.
-   - ❌ _이곳에서는 Express의 `req`, `res` 등의 웹 프레임워크 종속적인 객체를 직접 다루지 않습니다._
-3. **Repository (데이터 접근 계층)**
-   - **데이터베이스(DB)와 통신**하는 유일한 계층입니다.
-   - Drizzle ORM 등을 통해 쿼리를 실행하고 데이터를 삽입/조회하여 Service로 결과만 반환합니다.
+이 프로젝트는 NestJS가 아니라 **Express 기반의 모듈형 계층 구조**를 사용합니다. 핵심 흐름은 `Route -> Controller -> Service -> Repository -> DB/Redis` 입니다.
 
 ---
 
-## 2. 의존성 주입 (Dependency Injection, DI) 이란?
+## 1. 요청 흐름
 
-**의존성 주입(DI)** 은 클래스가 내부에서 사용할 객체(예: DB를 다루는 Repository)를 자기 스스로 생성(`new`)하는 것이 아니라, **외부에서 생성자로 주입(전달)받아 사용하는 디자인 패턴**입니다.
+앱 시작점은 `src/main.ts` 입니다. 여기서 환경 변수를 읽고, 필요하면 DB 스키마 자동 보정 후 서버를 띄웁니다.
 
-### 🤔 왜 굳이 귀찮게 DI를 써야 하나요?
+그다음 `src/app.ts` 에서 Express 인스턴스를 만들고 JSON 파싱, CORS, 에러 핸들러를 붙입니다.
 
-- **결합도 완화(Decoupling)**: Service가 특정한 하나의 Repository 구현체에 꽉 묶여있지 않게 되어 구조가 유연해집니다.
-- **테스트 용이성 (가장 큰 장점)**: Service가 직접 DB에 접근하는 것이 아니라 외부에서 주입된 객체를 사용하므로, 코드를 테스트할 때 가짜(Mock) Repository 객체를 손쉽게 주입할 수 있습니다. 즉, 실제 DB 연결 없이도 순수 로직만 단위 테스트(Unit Test) 하기가 매우 편해집니다.
+`src/routes.ts` 는 기능별 라우터를 한 곳에 모아 연결합니다.
 
----
+- `src/modules/system/system.routes.ts`
+- `src/modules/capsules/capsules.routes.ts`
 
-## 3. 우리 프로젝트의 DI 구현 패턴 (코드 예시)
+즉 실제 HTTP 요청은 아래 순서로 흘러갑니다.
 
-현재 우리 프로젝트는 무거운 외부 라이브러리(Inversify 등) 없이, **생성자 주입(Constructor Injection)** 방식을 직접 활용하여 싱글톤 인스턴스를 내보내는 심플한 방식을 사용합니다.
-
-### 📝 실제 코드 (Capsules 도메인 예시)
-
-**1️⃣ Repository 정의 및 외부로 내보내기**
-
-```typescript
-// src/modules/capsules/capsules.repository.ts
-export class CapsulesRepository {
-  // DB 관련 쿼리 로직
-  getCapsule(slug: string) { ... }
-}
-
-// 외부에서 쓸 수 있게 생성한 인스턴스를 export 합니다.
-export const capsulesRepository = new CapsulesRepository();
-```
-
-**2️⃣ Service에서 Repository 주입 받기 ⭐️**
-
-```typescript
-// src/modules/capsules/capsules.service.ts
-import { capsulesRepository, CapsulesRepository } from "./capsules.repository";
-
-export class CapsulesService {
-  // 💡 핵심: 내부에서 new CapsulesRepository()를 직접 하지 않고,
-  // 대신 생성자(constructor) 파라미터로 "주입(Inject)"을 받습니다!
-  constructor(private readonly repository: CapsulesRepository) {}
-
-  getCapsule(slug: string) {
-    // 주입받은 repository 객체를 사용합니다.
-    return this.repository.getCapsule(slug);
-  }
-}
-
-// 위에서 만든 repository를 인자로 전달(주입)하여 Service 인스턴스를 만듭니다.
-export const capsulesService = new CapsulesService(capsulesRepository);
-```
-
-**3️⃣ Controller에서 Service 사용하기**
-
-```typescript
-// src/modules/capsules/capsules.controller.ts
-import { Request, Response } from "express";
-import { capsulesService } from "./capsules.service";
-
-export const getCapsule = (req: Request, res: Response) => {
-  // Controller는 비즈니스 로직과 DB 구조를 몰라도 됩니다.
-  // 그저 주입되어 완성된 서비스에 작업만 위임하면 됩니다!
-  const payload = capsulesService.getCapsule(req.params.slug);
-  res.status(200).json(payload);
-};
-```
+`Express app` -> `routes.ts` -> `module routes` -> `controller` -> `service` -> `repository` -> `db / redis`
 
 ---
 
-## 4. 🚀 새로운 API 기능을 추가할 때의 작업 흐름 (Workflow)
+## 2. 각 계층의 역할
 
-새로운 기능을 개발하실 때는 아래의 순서대로 바닥(데이터 모델)부터 위(네트워크)로 올라오며 조립하시면 헷갈리지 않습니다.
+### Controller
 
-1. **DTO (Data Transfer Object) 정의**
-   - `src/modules/{domain}/dto/` 경로에 Zod 스키마를 작성해 입력/출력 데이터의 규격을 잡습니다.
-2. **Repository 작성**
-   - `*.repository.ts`에 순수 쿼리 함수를 추가합니다.
-3. **Service 작성**
-   - `*.service.ts`에서 Repository를 생성자 주입받고, 검증 등 핵심 비즈니스 로직을 추가합니다.
-4. **Controller 작성**
-   - `*.controller.ts`에서 Express 객체(`req`, `res`)를 인자로 받아 만들어진 Service 메서드를 호출하고 HTTP 응답을 내보냅니다.
-5. **Routes 매핑 설정**
-   - `*.routes.ts` 파일에 라우팅 경로와 Controller를 서로 연결해주면 완성입니다! 🎉
+Controller는 HTTP 요청과 응답을 다루는 얇은 계층입니다.
+
+- `req.body`, `req.params`를 Zod DTO로 검증합니다.
+- 성공 시 적절한 HTTP status와 JSON body를 반환합니다.
+- 비즈니스 로직과 쿼리 작성은 여기서 하지 않습니다.
+
+예를 들면 `src/modules/capsules/capsules.controller.ts` 는 캡슐 생성, 조회, 수정, 삭제, 메시지 작성, SSE 연결을 담당합니다.
+
+### Service
+
+Service는 여러 저장소 작업을 엮고, 도메인 규칙을 적용하는 계층입니다.
+
+- DB 준비 상태를 먼저 확인합니다.
+- 메시지 작성 후 SSE publish 같은 후처리를 담당합니다.
+- 비즈니스 흐름을 조립하지만, HTTP 세부사항은 알지 못하게 유지합니다.
+
+현재는 `CapsulesService` 처럼 클래스와 생성자 주입을 함께 쓰지만, 외부 DI 컨테이너는 사용하지 않습니다. 싱글톤 인스턴스를 export 해서 연결하는 단순한 방식입니다.
+
+### Repository
+
+Repository는 실제 데이터 접근 계층입니다.
+
+- PostgreSQL은 `drizzle-orm`으로 조회/삽입/수정을 수행합니다.
+- 예약 토큰이나 일부 상태는 Redis를 함께 사용합니다.
+- DB 제약 위반이나 도메인 예외를 애플리케이션 예외로 변환합니다.
+
+캡슐 도메인의 실제 예시는 `src/modules/capsules/capsules.repository.ts` 입니다.
+
+---
+
+## 3. DTO 와 OpenAPI
+
+입력/출력 규격은 `src/modules/*/dto/` 아래의 Zod 스키마가 기준입니다.
+
+대표 경로는 다음과 같습니다.
+
+- `src/modules/capsules/dto/shared.dto.ts`
+- `src/modules/capsules/dto/create-capsule.dto.ts`
+- `src/modules/capsules/dto/get-capsule.dto.ts`
+- `src/modules/capsules/dto/slug-reservation.dto.ts`
+
+이 DTO들은 다음 두 곳에서 재사용됩니다.
+
+- Controller의 요청 검증
+- `src/openapi/registry.ts`의 OpenAPI 등록
+
+즉 이 저장소에서는 Zod 스키마가 사실상의 계약 원본입니다. `openapi.json`은 그 계약을 외부 도구와 공유하기 위한 산출물입니다.
+
+---
+
+## 4. 실제 모듈 구성
+
+### System 모듈
+
+`src/modules/system/` 는 서버 상태와 문서 진입점을 제공합니다.
+
+- `/` : 기본 확인 응답
+- `/healthCheck` : DB/Redis 상태 점검
+- `/openapi.json` : OpenAPI JSON
+- `/api-docs` : Swagger UI
+
+### Capsules 모듈
+
+`src/modules/capsules/` 는 서비스의 핵심 기능을 담당합니다.
+
+- 슬러그 예약 생성
+- 타임캡슐 생성
+- 타임캡슐 상세 조회
+- 타임캡슐 수정/삭제
+- 익명 메시지 작성
+- 상태 집계 및 SSE 스트림
+
+---
+
+## 5. 문서와 코드의 연결
+
+문서를 볼 때는 아래 순서가 가장 빠릅니다.
+
+1. `README.md`에서 전체 구조와 실행 방법을 확인합니다.
+2. `docs/API_SPEC.md`에서 계약을 확인합니다.
+3. `src/modules/capsules/dto/`에서 실제 Zod 스키마를 확인합니다.
+4. `src/openapi/registry.ts`에서 OpenAPI 경로와 예시를 확인합니다.
+5. `src/modules/capsules/`의 controller, service, repository를 따라가며 동작을 확인합니다.
+
+---
+
+## 6. 새 기능을 넣을 때의 순서
+
+새 API를 추가하거나 기존 API를 바꿀 때는 아래 순서를 추천합니다.
+
+1. `docs/API_SPEC.md` 와 필요한 경우 `docs/ERD.md` 를 먼저 갱신합니다.
+2. `src/modules/{domain}/dto/` 에 Zod 스키마를 추가하거나 수정합니다.
+3. Repository에 데이터 접근 함수를 추가합니다.
+4. Service에서 비즈니스 흐름을 연결합니다.
+5. Controller에서 요청 검증과 응답 변환을 마무리합니다.
+6. `src/modules/{domain}/*.routes.ts` 에 라우트를 연결합니다.
+7. `src/openapi/registry.ts` 에 OpenAPI 경로와 예시를 맞춥니다.
+8. 필요한 테스트를 추가하고 `openapi.json` 과 실제 응답이 일치하는지 확인합니다.
+
+---
+
+## 7. 이 저장소를 볼 때 기억할 점
+
+- `drizzle-zod` 기반 자동 생성 흐름은 현재 사용하지 않습니다.
+- 계약의 중심은 `src/modules/*/dto/` 의 Zod 스키마입니다.
+- Redis는 캡슐 슬러그 예약과 일부 SSE 흐름에 사용됩니다.
+- 문서가 실제 코드와 다르면 코드가 아니라 문서를 먼저 고치는 편이 유지보수에 더 좋습니다.
