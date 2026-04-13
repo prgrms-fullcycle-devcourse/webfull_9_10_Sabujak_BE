@@ -7,6 +7,8 @@ import {
 } from "./db-schema-reference";
 
 const execFileAsync = promisify(execFile);
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const normalizeLineEndings = (value: string) => value.replace(/\r\n/g, "\n");
 
 const assertNoForbiddenRuntimePaths = async () => {
   const [mainSource, dockerComposeSource] = await Promise.all([
@@ -48,7 +50,7 @@ const assertSchemaReferenceIsSynced = async () => {
     fs.readFile(docsSchemaPath, "utf-8"),
   ]);
 
-  if (actual !== expected) {
+  if (normalizeLineEndings(actual) !== normalizeLineEndings(expected)) {
     throw new Error(
       "docs/schema.sql is out of date. Run `pnpm run db:schema:export` and commit the updated snapshot.",
     );
@@ -56,7 +58,7 @@ const assertSchemaReferenceIsSynced = async () => {
 };
 
 const main = async () => {
-  await execFileAsync("pnpm", [
+  await execFileAsync(pnpmCommand, [
     "exec",
     "drizzle-kit",
     "check",

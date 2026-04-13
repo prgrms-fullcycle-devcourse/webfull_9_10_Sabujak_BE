@@ -1,12 +1,12 @@
 import pool from "../src/db";
 
 const forceFlag = "--force";
+const confirmationMessage =
+  "Legacy drift repair is disabled by default. Re-run with `pnpm run db:repair:legacy-drift -- --force` if you intentionally need a one-off repair.";
 
 const ensureForceFlag = () => {
   if (!process.argv.includes(forceFlag)) {
-    throw new Error(
-      `Legacy drift repair is disabled by default. Re-run with \`${forceFlag}\` if you intentionally need a one-off repair.`,
-    );
+    throw new Error(confirmationMessage);
   }
 };
 

@@ -4,6 +4,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 export const dbSchemaReferenceHeader = `-- Reference-only schema snapshot
 -- Source of truth: src/db/schema.ts + drizzle migrations
@@ -15,7 +16,7 @@ export const docsSchemaPath = path.resolve(process.cwd(), "docs/schema.sql");
 
 export const createDbSchemaReferenceContent = async () => {
   const { stdout } = await execFileAsync(
-    "pnpm",
+    pnpmCommand,
     ["exec", "drizzle-kit", "export", "--config", "drizzle.config.ts", "--sql"],
     {
       cwd: process.cwd(),

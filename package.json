@@ -18,7 +18,7 @@
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "db:schema:export": "node --import tsx scripts/export-db-schema-reference.ts",
     "db:schema:check": "node --import tsx scripts/check-db-schema.ts",
-    "db:repair:legacy-drift": "node --import tsx scripts/repair-db-drift.ts --force",
+    "db:repair:legacy-drift": "node --import tsx scripts/repair-db-drift.ts",
     "openapi:generate": "node --import tsx scripts/generate-openapi.ts",
     "openapi:check": "node --import tsx scripts/check-openapi.ts",
     "prepare": "husky",
