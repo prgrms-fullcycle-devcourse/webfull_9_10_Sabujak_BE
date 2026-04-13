@@ -42,7 +42,13 @@
           "reservationToken",
           "reservationSessionToken",
           "reservedUntil"
-        ]
+        ],
+        "example": {
+          "slug": "our-graduation-2025",
+          "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC",
+          "reservationSessionToken": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ",
+          "reservedUntil": "2026-03-18T02:10:21.000Z"
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -125,13 +131,18 @@
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
           }
         },
-        "required": ["slug"]
+        "required": ["slug"],
+        "example": {
+          "slug": "our-graduation-2025",
+          "reservationSessionToken": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
+        }
       },
       "CreateCapsuleResponse": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
+            "maxLength": 26,
             "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
           },
           "slug": {
@@ -160,6 +171,8 @@
           },
           "version": {
             "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
             "description": "캡슐 수정 optimistic locking 버전",
             "example": 1
           },
@@ -183,7 +196,17 @@
           "version",
           "createdAt",
           "updatedAt"
-        ]
+        ],
+        "example": {
+          "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "slug": "our-graduation-2025",
+          "title": "졸업 축하 타임캡슐",
+          "openAt": "2025-12-25T12:00:00.000Z",
+          "expiresAt": "2026-01-01T12:00:00.000Z",
+          "version": 1,
+          "createdAt": "2025-03-18T02:05:21.000Z",
+          "updatedAt": "2025-03-18T02:05:21.000Z"
+        }
       },
       "CreateCapsuleRequest": {
         "type": "object",
@@ -202,15 +225,15 @@
             "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
           },
-          "password": {
-            "type": "string",
-            "pattern": "^\\d{4}$",
-            "example": "1234"
-          },
           "openAt": {
             "type": "string",
             "format": "date-time",
             "example": "2025-12-25T12:00:00.000Z"
+          },
+          "password": {
+            "type": "string",
+            "pattern": "^\\d{4}$",
+            "example": "1234"
           },
           "reservationToken": {
             "type": "string",
@@ -221,7 +244,15 @@
             "example": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
           }
         },
-        "required": ["slug", "title", "password", "openAt", "reservationToken"]
+        "required": ["slug", "title", "openAt", "password", "reservationToken"],
+        "example": {
+          "slug": "our-graduation-2025",
+          "title": "졸업 축하 타임캡슐",
+          "password": "1234",
+          "openAt": "2025-12-25T12:00:00.000Z",
+          "reservationToken": "01HQX7Y8J6R8J2E5W4C2R9A1BC",
+          "reservationSessionToken": "01HQX7Y8J6R8J2E5W4C2R9A1ZZ"
+        }
       },
       "CapsuleStatsResponse": {
         "type": "object",
@@ -254,162 +285,166 @@
       "CapsuleDetailResponse": {
         "oneOf": [
           {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CapsuleBaseResponse"
               },
-              "slug": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 50,
-                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-                "description": "사용자 노출용 slug 식별자",
-                "example": "our-graduation-2025"
-              },
-              "title": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 100,
-                "example": "졸업 축하 타임캡슐"
-              },
-              "openAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2025-12-25T12:00:00.000Z"
-              },
-              "expiresAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2026-01-01T12:00:00.000Z"
-              },
-              "version": {
-                "type": "integer",
-                "description": "캡슐 수정 optimistic locking 버전",
-                "example": 1
-              },
-              "createdAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2025-03-18T02:05:21.000Z"
-              },
-              "updatedAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2025-03-18T02:05:21.000Z"
-              },
-              "isOpen": {
-                "type": "boolean",
-                "enum": [false],
-                "example": false
-              },
-              "messageCount": {
-                "type": "integer",
-                "example": 12
+              {
+                "type": "object",
+                "properties": {
+                  "isOpen": {
+                    "type": "boolean",
+                    "enum": [false],
+                    "example": false
+                  },
+                  "messageCount": {
+                    "type": "integer",
+                    "example": 12
+                  }
+                },
+                "required": ["isOpen", "messageCount"]
               }
-            },
-            "required": [
-              "id",
-              "slug",
-              "title",
-              "openAt",
-              "expiresAt",
-              "version",
-              "createdAt",
-              "updatedAt",
-              "isOpen",
-              "messageCount"
-            ]
+            ],
+            "example": {
+              "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+              "slug": "our-graduation-2025",
+              "title": "졸업 축하 타임캡슐",
+              "openAt": "2025-12-25T12:00:00.000Z",
+              "expiresAt": "2026-01-01T12:00:00.000Z",
+              "version": 1,
+              "createdAt": "2025-03-18T02:05:21.000Z",
+              "updatedAt": "2025-03-18T02:05:21.000Z"
+            }
           },
           {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CapsuleBaseResponse"
               },
-              "slug": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 50,
-                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-                "description": "사용자 노출용 slug 식별자",
-                "example": "our-graduation-2025"
-              },
-              "title": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 100,
-                "example": "졸업 축하 타임캡슐"
-              },
-              "openAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2025-12-25T12:00:00.000Z"
-              },
-              "expiresAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2026-01-01T12:00:00.000Z"
-              },
-              "version": {
-                "type": "integer",
-                "description": "캡슐 수정 optimistic locking 버전",
-                "example": 1
-              },
-              "createdAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2025-03-18T02:05:21.000Z"
-              },
-              "updatedAt": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2025-06-01T10:00:00.000Z"
-              },
-              "isOpen": {
-                "type": "boolean",
-                "enum": [true],
-                "example": true
-              },
-              "messageCount": {
-                "type": "integer",
-                "example": 5
-              },
-              "messages": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/CapsuleMessage"
+              {
+                "type": "object",
+                "properties": {
+                  "updatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-06-01T10:00:00.000Z"
+                  },
+                  "isOpen": {
+                    "type": "boolean",
+                    "enum": [true],
+                    "example": true
+                  },
+                  "messageCount": {
+                    "type": "integer",
+                    "example": 5
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CapsuleMessage"
+                    },
+                    "description": "공개 후 내려오는 메시지 목록"
+                  }
                 },
-                "description": "공개 후 내려오는 메시지 목록"
+                "required": ["isOpen", "messageCount", "messages"]
               }
-            },
-            "required": [
-              "id",
-              "slug",
-              "title",
-              "openAt",
-              "expiresAt",
-              "version",
-              "createdAt",
-              "updatedAt",
-              "isOpen",
-              "messageCount",
-              "messages"
-            ]
+            ],
+            "example": {
+              "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+              "slug": "our-graduation-2025",
+              "title": "졸업 축하 타임캡슐",
+              "openAt": "2025-12-25T12:00:00.000Z",
+              "expiresAt": "2026-01-01T12:00:00.000Z",
+              "version": 1,
+              "createdAt": "2025-03-18T02:05:21.000Z",
+              "updatedAt": "2025-03-18T02:05:21.000Z"
+            }
           }
         ]
+      },
+      "CapsuleBaseResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 26,
+            "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "사용자 노출용 slug 식별자",
+            "example": "our-graduation-2025"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "졸업 축하 타임캡슐"
+          },
+          "openAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-25T12:00:00.000Z"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T12:00:00.000Z"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
+            "description": "캡슐 수정 optimistic locking 버전",
+            "example": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-03-18T02:05:21.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "openAt",
+          "expiresAt",
+          "version",
+          "createdAt",
+          "updatedAt"
+        ],
+        "example": {
+          "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "slug": "our-graduation-2025",
+          "title": "졸업 축하 타임캡슐",
+          "openAt": "2025-12-25T12:00:00.000Z",
+          "expiresAt": "2026-01-01T12:00:00.000Z",
+          "version": 1,
+          "createdAt": "2025-03-18T02:05:21.000Z",
+          "updatedAt": "2025-03-18T02:05:21.000Z"
+        }
       },
       "CapsuleMessage": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "example": 1
           },
           "nickname": {
             "type": "string",
+            "maxLength": 20,
             "example": "익명의 멘토"
           },
           "content": {
@@ -460,6 +495,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "maxLength": 26,
             "example": "01ARZ3NDEKTSV4RRFFQ69G5FAV"
           },
           "slug": {
@@ -488,6 +524,8 @@
           },
           "version": {
             "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647,
             "description": "캡슐 수정 optimistic locking 버전",
             "example": 1
           },
@@ -511,21 +549,37 @@
           "version",
           "createdAt",
           "updatedAt"
-        ]
+        ],
+        "example": {
+          "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+          "slug": "our-graduation-2025",
+          "title": "졸업 축하 타임캡슐",
+          "openAt": "2025-12-25T12:00:00.000Z",
+          "expiresAt": "2026-01-01T12:00:00.000Z",
+          "version": 1,
+          "createdAt": "2025-03-18T02:05:21.000Z",
+          "updatedAt": "2025-03-18T02:05:21.000Z"
+        }
       },
       "UpdateCapsuleRequest": {
         "type": "object",
         "properties": {
-          "password": {
-            "type": "string",
-            "pattern": "^\\d{4}$",
-            "example": "1234"
-          },
           "title": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
             "example": "졸업 축하 타임캡슐"
+          },
+          "openAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-25T12:00:00.000Z",
+            "description": "현재 시각 이후의 공개 예정 시각(ISO 8601)"
+          },
+          "password": {
+            "type": "string",
+            "pattern": "^\\d{4}$",
+            "example": "1234"
           },
           "version": {
             "type": "integer",
@@ -533,15 +587,15 @@
             "exclusiveMinimum": true,
             "description": "조회 시점의 캡슐 수정 버전",
             "example": 1
-          },
-          "openAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-12-25T12:00:00.000Z",
-            "description": "현재 시각 이후의 공개 예정 시각(ISO 8601)"
           }
         },
-        "required": ["password", "title", "version", "openAt"]
+        "required": ["title", "openAt", "password", "version"],
+        "example": {
+          "password": "1234",
+          "title": "졸업 축하 타임캡슐",
+          "version": 1,
+          "openAt": "2025-12-25T12:00:00.000Z"
+        }
       },
       "DeleteCapsuleRequest": {
         "type": "object",
@@ -559,6 +613,8 @@
         "properties": {
           "id": {
             "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "example": 13
           },
           "nickname": {
@@ -579,7 +635,13 @@
             "example": "2025-03-18T02:05:21.000Z"
           }
         },
-        "required": ["id", "nickname", "content", "createdAt"]
+        "required": ["id", "nickname", "content", "createdAt"],
+        "example": {
+          "id": 13,
+          "nickname": "익명의 친구",
+          "content": "앞으로도 좋은 일만 가득하길 바랄게!",
+          "createdAt": "2025-03-18T02:05:21.000Z"
+        }
       },
       "CreateMessageRequest": {
         "type": "object",
@@ -597,7 +659,11 @@
             "example": "앞으로도 좋은 일만 가득하길 바랄게!"
           }
         },
-        "required": ["nickname", "content"]
+        "required": ["nickname", "content"],
+        "example": {
+          "nickname": "익명의 친구",
+          "content": "앞으로도 좋은 일만 가득하길 바랄게!"
+        }
       }
     },
     "parameters": {}

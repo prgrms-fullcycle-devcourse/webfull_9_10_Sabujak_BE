@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { createSchemaFactory } from "drizzle-orm/zod";
 import {
   bigint,
   char,
@@ -10,6 +10,17 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
+import { z } from "../openapi/zod-extend";
+
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const isoDateTimeStringSchema = z.string().datetime();
+
+const {
+  createSelectSchema: createOpenApiSelectSchema,
+  createInsertSchema: createOpenApiInsertSchema,
+} = createSchemaFactory({
+  zodInstance: z,
+});
 
 export const capsules = pgTable(
   "capsules",
@@ -60,13 +71,26 @@ export const messages = pgTable(
   }),
 );
 
-export const capsulesRelations = relations(capsules, ({ many }) => ({
-  messages: many(messages),
-}));
+export const selectCapsuleBaseSchema = createOpenApiSelectSchema(capsules, {
+  slug: (schema: z.ZodString) => schema.regex(slugPattern),
+  openAt: () => isoDateTimeStringSchema,
+  expiresAt: () => isoDateTimeStringSchema,
+  createdAt: () => isoDateTimeStringSchema,
+  updatedAt: () => isoDateTimeStringSchema,
+});
 
-export const messagesRelations = relations(messages, ({ one }) => ({
-  capsule: one(capsules, {
-    fields: [messages.capsuleId],
-    references: [capsules.id],
-  }),
-}));
+export const insertCapsuleBaseSchema = createOpenApiInsertSchema(capsules, {
+  slug: (schema: z.ZodString) => schema.regex(slugPattern),
+  openAt: () => isoDateTimeStringSchema,
+  expiresAt: () => isoDateTimeStringSchema,
+  createdAt: () => isoDateTimeStringSchema,
+  updatedAt: () => isoDateTimeStringSchema,
+});
+
+export const selectMessageBaseSchema = createOpenApiSelectSchema(messages, {
+  createdAt: () => isoDateTimeStringSchema,
+});
+
+export const insertMessageBaseSchema = createOpenApiInsertSchema(messages, {
+  createdAt: () => isoDateTimeStringSchema,
+});

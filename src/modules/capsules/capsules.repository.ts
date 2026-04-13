@@ -243,7 +243,7 @@ export class CapsulesRepository {
     // 최종 저장소인 DB에 이미 사용 중인 slug가 있으면 즉시 차단합니다.
     const existingCapsule = await db.query.capsules.findFirst({
       columns: { id: true },
-      where: eq(capsules.slug, input.slug),
+      where: { slug: input.slug },
     });
 
     if (existingCapsule) {
@@ -438,7 +438,7 @@ export class CapsulesRepository {
         createdAt: true,
         updatedAt: true,
       },
-      where: eq(capsules.slug, input.slug),
+      where: { slug: input.slug },
     });
 
     if (!capsule) {
@@ -507,7 +507,7 @@ export class CapsulesRepository {
         id: true,
         expiresAt: true,
       },
-      where: eq(capsules.slug, input.slug),
+      where: { slug: input.slug },
     });
 
     if (!capsule) {
@@ -535,7 +535,7 @@ export class CapsulesRepository {
       columns: {
         passwordHash: true,
       },
-      where: eq(capsules.slug, input.slug),
+      where: { slug: input.slug },
     });
 
     if (!capsule) {
@@ -693,7 +693,7 @@ export class CapsulesRepository {
         openAt: true,
         expiresAt: true,
       },
-      where: eq(capsules.slug, input.slug),
+      where: { slug: input.slug },
     });
 
     if (!capsule) {

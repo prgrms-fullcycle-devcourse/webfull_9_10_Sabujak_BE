@@ -98,6 +98,9 @@ export const getCapsule = (req: Request, res: Response) => {
 
 1. **DTO (Data Transfer Object) 정의**
    - `src/modules/{domain}/dto/` 경로에 Zod 스키마를 작성해 입력/출력 데이터의 규격을 잡습니다.
+   - 공통 필드는 `src/db/schema.ts`에서 `drizzle-orm/zod`로 생성한 base schema를 우선 재사용합니다.
+   - 요청/응답에만 필요한 필드(`password`, `reservationToken`, `isOpen`, `messageCount`, `messages` 등)는 DTO에서 `extend()`로 분리합니다.
+   - 응답 example, OpenAPI 설명, path/body 구분 같은 문서 메타데이터는 최종 DTO schema root에 둡니다.
 2. **Repository 작성**
    - `*.repository.ts`에 순수 쿼리 함수를 추가합니다.
 3. **Service 작성**

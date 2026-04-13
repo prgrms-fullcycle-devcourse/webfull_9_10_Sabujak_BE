@@ -64,8 +64,8 @@ flowchart LR
     API --> ENV[".env Configuration"]
 
     subgraph PIPE["Schema-to-Client Pipeline"]
-        DRIZZLE["Drizzle Schema"] --> DZ["drizzle-zod"]
-        DZ --> ZOD["Zod Schema"]
+        DRIZZLE["Drizzle Schema"] --> DZ["drizzle-orm/zod Base Schema"]
+        DZ --> ZOD["API Zod Schema"]
         ZOD --> OPENAPI["OpenAPI Registry"]
         OPENAPI --> ORVAL["Orval Client Generation"]
         ORVAL --> FECLIENT["Frontend API Client"]
@@ -85,7 +85,25 @@ flowchart LR
 ```
 
 사부작 백엔드는 프론트엔드 요청을 Express 서버에서 받아 Zod로 검증하고, 캡슐 및 메시지 도메인 로직을 거쳐 PostgreSQL에 저장합니다.  
-추가로 `Drizzle -> drizzle-zod -> Zod -> OpenAPI -> Orval`로 이어지는 스키마 파이프라인과 `Vercel -> Render -> Neon` 배포 흐름을 함께 보여주도록 구성했습니다.
+추가로 `Drizzle -> drizzle-orm/zod -> API Zod -> OpenAPI -> Orval`로 이어지는 스키마 파이프라인과 `Vercel -> Render -> Neon` 배포 흐름을 함께 보여주도록 구성했습니다.
+
+## Schema Layering
+
+현재 스키마 구성은 `src/db/schema.ts`를 단일 진실 공급원으로 두고, `drizzle-orm/zod`로 DB base schema를 생성한 뒤 API DTO가 이를 재사용하는 방식입니다.
+
+- DB base schema
+  - 위치: `src/db/schema.ts`
+  - 역할: 컬럼 길이, null 여부, 기본 타입, slug 정규식 같은 공통 도메인 제약의 기준점
+- API schema
+  - 위치: `src/modules/*/dto/*.ts`
+  - 역할: 요청/응답 계약, OpenAPI example, path/body 분리, `isOpen`, `messageCount`, `messages`, `password`, `reservationToken` 같은 API 전용 필드 표현
+
+실무 규칙은 다음처럼 유지합니다.
+
+- 공통 필드는 가능하면 DB base schema에서 `pick`, `omit`, `extend`, `partial`로 가져옵니다.
+- API에만 존재하는 필드는 DTO 레이어에서만 선언합니다.
+- 시간 필드는 DB에서는 `timestamp`이지만 API 계약은 UTC ISO 8601 문자열이므로 DTO에서 문자열 스키마를 유지합니다.
+- OpenAPI example과 설명은 최종 DTO schema root에 붙여 문서 계약을 명확히 유지합니다.
 
 ## Project Structure
 
