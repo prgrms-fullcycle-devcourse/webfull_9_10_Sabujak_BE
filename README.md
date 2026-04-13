@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?style=for-the-badge&logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![pnpm](https://img.shields.io/badge/pnpm-8+-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-9.x-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger_UI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 
@@ -149,14 +149,18 @@ flowchart LR
 ### 1. Prerequisites
 
 - Node.js `20+`
-- pnpm `8+`
+- pnpm `9.x`
 - Docker / Docker Compose
 
 ### 2. Install Dependencies
 
 ```bash
+corepack enable
+corepack use pnpm@9.0.0
 pnpm install
 ```
+
+`package.json`의 `packageManager`와 동일한 pnpm major를 사용해야 lockfile 해석 차이로 인한 의존성 누락을 피할 수 있습니다.
 
 ### 3. Configure Environment Variables
 
