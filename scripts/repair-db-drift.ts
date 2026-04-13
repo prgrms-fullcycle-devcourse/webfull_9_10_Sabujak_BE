@@ -1,4 +1,14 @@
-import pool from "./index";
+import pool from "../src/db";
+
+const forceFlag = "--force";
+
+const ensureForceFlag = () => {
+  if (!process.argv.includes(forceFlag)) {
+    throw new Error(
+      `Legacy drift repair is disabled by default. Re-run with \`${forceFlag}\` if you intentionally need a one-off repair.`,
+    );
+  }
+};
 
 const ensureCapsuleTimestamps = async () => {
   await pool.query(`
@@ -59,8 +69,23 @@ const ensureMessageCreatedAt = async () => {
   `);
 };
 
-export const ensureDatabaseSchema = async () => {
+const main = async () => {
+  ensureForceFlag();
+
+  console.warn(
+    "Running one-off legacy drift repair. This is not part of the standard schema workflow.",
+  );
+
   await ensureCapsuleTimestamps();
   await ensureMessageIdIdentity();
   await ensureMessageCreatedAt();
+
+  console.log("Legacy drift repair completed.");
+  await pool.end();
 };
+
+main().catch(async (error) => {
+  console.error(error);
+  await pool.end().catch(() => undefined);
+  process.exit(1);
+});
