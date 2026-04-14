@@ -15,6 +15,13 @@
       "when": 1776054564909,
       "tag": "0001_modern_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776174779498,
+      "tag": "0002_groovy_red_hulk",
+      "breakpoints": true
     }
   ]
 }

@@ -15,7 +15,7 @@ export const capsules = pgTable(
   "capsules",
   {
     id: char("id", { length: 26 }).primaryKey(),
-    slug: varchar("slug", { length: 50 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
     title: varchar("title", { length: 100 }).notNull(),
     openAt: timestamp("open_at", { withTimezone: true }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -27,6 +27,10 @@ export const capsules = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    originalSlug: varchar("original_slug", { length: 50 })
+      .notNull()
+      .default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => ({
     slugUniqueIdx: uniqueIndex("capsules_slug_unq").on(table.slug),
