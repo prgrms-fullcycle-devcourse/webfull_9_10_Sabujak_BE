@@ -22,6 +22,7 @@
     "db:repair:legacy-drift": "node --import tsx scripts/repair-db-drift.ts",
     "openapi:generate": "node --import tsx scripts/generate-openapi.ts",
     "openapi:check": "node --import tsx scripts/check-openapi.ts",
+    "batch:expire": "node --import tsx scripts/expire-capsules.ts",
     "prepare": "husky",
     "test:rate-limit": "bash scripts/test-rate-limit.sh",
     "pr-review:prepare": "bash scripts/generate-pr-review-input.sh",
