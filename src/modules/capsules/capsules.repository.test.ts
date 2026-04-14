@@ -1482,14 +1482,17 @@ describe("CapsulesRepository", () => {
         passwordHash: buildPasswordHash("1234"),
       });
 
-      const deleteReturningMock = jest.fn().mockResolvedValue([]);
-      const deleteWhereMock = jest.fn().mockReturnValue({
-        returning: deleteReturningMock,
+      const updateReturningMock = jest.fn().mockResolvedValue([]);
+      const updateWhereMock = jest.fn().mockReturnValue({
+        returning: updateReturningMock,
       });
-      const deleteMock = jest.fn().mockReturnValue({ where: deleteWhereMock });
+      const updateSetMock = jest.fn().mockReturnValue({
+        where: updateWhereMock,
+      });
+      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
       db.transaction.mockImplementation(async (callback) =>
         callback({
-          delete: deleteMock,
+          update: updateMock,
           select: selectMocks.selectMock,
         }),
       );
@@ -1502,22 +1505,25 @@ describe("CapsulesRepository", () => {
       ).rejects.toBeInstanceOf(CapsuleNotFoundException);
     });
 
-    it("비밀번호가 일치하면 트랜잭션 내부에서 캡슐을 Hard Delete 한다", async () => {
+    it("비밀번호가 일치하면 트랜잭션 내부에서 캡슐을 Soft Delete 한다", async () => {
       const selectMocks = buildLockedCapsuleSelectMocks({
         id: "01TESTCAPSULEID123456789012",
         passwordHash: buildPasswordHash("1234"),
       });
 
-      const deleteReturningMock = jest
+      const updateReturningMock = jest
         .fn()
         .mockResolvedValue([{ id: "01TESTCAPSULEID123456789012" }]);
-      const deleteWhereMock = jest.fn().mockReturnValue({
-        returning: deleteReturningMock,
+      const updateWhereMock = jest.fn().mockReturnValue({
+        returning: updateReturningMock,
       });
-      const deleteMock = jest.fn().mockReturnValue({ where: deleteWhereMock });
+      const updateSetMock = jest.fn().mockReturnValue({
+        where: updateWhereMock,
+      });
+      const updateMock = jest.fn().mockReturnValue({ set: updateSetMock });
       db.transaction.mockImplementation(async (callback) =>
         callback({
-          delete: deleteMock,
+          update: updateMock,
           select: selectMocks.selectMock,
         }),
       );
@@ -1531,8 +1537,9 @@ describe("CapsulesRepository", () => {
 
       expect(db.transaction).toHaveBeenCalledTimes(1);
       expect(db.query.capsules.findFirst).not.toHaveBeenCalled();
-      expect(deleteMock).toHaveBeenCalledTimes(1);
-      expect(deleteWhereMock).toHaveBeenCalledTimes(1);
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      expect(updateSetMock).toHaveBeenCalledTimes(1);
+      expect(updateWhereMock).toHaveBeenCalledTimes(1);
     });
   });
 });
