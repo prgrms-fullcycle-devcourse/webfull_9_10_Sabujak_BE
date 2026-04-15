@@ -1,4 +1,3 @@
-import { createSchemaFactory } from "drizzle-orm/zod";
 import {
   bigint,
   char,
@@ -14,13 +13,6 @@ import { z } from "../openapi/zod-extend";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const isoDateTimeStringSchema = z.string().datetime();
-
-const {
-  createSelectSchema: createOpenApiSelectSchema,
-  createInsertSchema: createOpenApiInsertSchema,
-} = createSchemaFactory({
-  zodInstance: z,
-});
 
 export const capsules = pgTable(
   "capsules",
@@ -71,26 +63,51 @@ export const messages = pgTable(
   }),
 );
 
-export const selectCapsuleBaseSchema = createOpenApiSelectSchema(capsules, {
-  slug: (schema: z.ZodString) => schema.regex(slugPattern),
-  openAt: () => isoDateTimeStringSchema,
-  expiresAt: () => isoDateTimeStringSchema,
-  createdAt: () => isoDateTimeStringSchema,
-  updatedAt: () => isoDateTimeStringSchema,
+const capsuleIdSchema = z.string().length(26);
+const messageIdSchema = z.number().int();
+const slugSchema = z.string().min(1).max(50).regex(slugPattern);
+const titleSchema = z.string().min(1).max(100);
+const versionSchema = z.number().int();
+const passwordHashSchema = z.string().min(1).max(255);
+const nicknameSchema = z.string().min(1).max(20);
+const messageContentSchema = z.string().min(1);
+
+export const selectCapsuleBaseSchema = z.object({
+  id: capsuleIdSchema,
+  slug: slugSchema,
+  title: titleSchema,
+  openAt: isoDateTimeStringSchema,
+  expiresAt: isoDateTimeStringSchema,
+  version: versionSchema,
+  passwordHash: passwordHashSchema,
+  createdAt: isoDateTimeStringSchema,
+  updatedAt: isoDateTimeStringSchema,
 });
 
-export const insertCapsuleBaseSchema = createOpenApiInsertSchema(capsules, {
-  slug: (schema: z.ZodString) => schema.regex(slugPattern),
-  openAt: () => isoDateTimeStringSchema,
-  expiresAt: () => isoDateTimeStringSchema,
-  createdAt: () => isoDateTimeStringSchema,
-  updatedAt: () => isoDateTimeStringSchema,
+export const insertCapsuleBaseSchema = z.object({
+  id: capsuleIdSchema.optional(),
+  slug: slugSchema,
+  title: titleSchema,
+  openAt: isoDateTimeStringSchema,
+  expiresAt: isoDateTimeStringSchema.optional(),
+  version: versionSchema.optional(),
+  passwordHash: passwordHashSchema.optional(),
+  createdAt: isoDateTimeStringSchema.optional(),
+  updatedAt: isoDateTimeStringSchema.optional(),
 });
 
-export const selectMessageBaseSchema = createOpenApiSelectSchema(messages, {
-  createdAt: () => isoDateTimeStringSchema,
+export const selectMessageBaseSchema = z.object({
+  id: messageIdSchema,
+  capsuleId: capsuleIdSchema,
+  nickname: nicknameSchema,
+  content: messageContentSchema,
+  createdAt: isoDateTimeStringSchema,
 });
 
-export const insertMessageBaseSchema = createOpenApiInsertSchema(messages, {
-  createdAt: () => isoDateTimeStringSchema,
+export const insertMessageBaseSchema = z.object({
+  id: messageIdSchema.optional(),
+  capsuleId: capsuleIdSchema.optional(),
+  nickname: nicknameSchema,
+  content: messageContentSchema,
+  createdAt: isoDateTimeStringSchema.optional(),
 });
