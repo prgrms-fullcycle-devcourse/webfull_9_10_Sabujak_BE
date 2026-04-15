@@ -18,6 +18,7 @@ async function backfillOriginalSlug() {
   const needsBackfill = or(
     isNull(capsules.originalSlug),
     eq(capsules.originalSlug, ""),
+    isNull(capsules.deletedAt),
   );
 
   try {
