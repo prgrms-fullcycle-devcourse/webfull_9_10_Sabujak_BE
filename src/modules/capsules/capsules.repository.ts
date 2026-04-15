@@ -670,15 +670,18 @@ export class CapsulesRepository {
       // slug 컬럼의 최대 길이가 100자로 확장되었으므로 기존 slug(최대 50자)와 id(26자)를 온전하게 연결합니다.
       const newSlug = `${capsule.slug}-${capsule.id}`;
 
-      await db
+      const [updatedResult] = await db
         .update(capsules)
         .set({
           slug: newSlug,
           deletedAt: new Date(),
         })
-        .where(and(eq(capsules.id, capsule.id), isNull(capsules.deletedAt)));
+        .where(and(eq(capsules.id, capsule.id), isNull(capsules.deletedAt)))
+        .returning({ id: capsules.id });
 
-      processedCount++;
+      if (updatedResult) {
+        processedCount++;
+      }
     }
 
     return processedCount;
