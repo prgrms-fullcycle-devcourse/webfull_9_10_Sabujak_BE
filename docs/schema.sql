@@ -4,14 +4,16 @@
 
 CREATE TABLE "capsules" (
 	"id" char(26) PRIMARY KEY NOT NULL,
-	"slug" varchar(50) NOT NULL,
+	"slug" varchar(100) NOT NULL,
 	"title" varchar(100) NOT NULL,
 	"open_at" timestamp with time zone NOT NULL,
 	"expires_at" timestamp with time zone NOT NULL,
 	"version" integer DEFAULT 1 NOT NULL,
 	"password_hash" varchar(255) NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"original_slug" varchar(50) DEFAULT '' NOT NULL,
+	"deleted_at" timestamp with time zone
 );
 
 CREATE TABLE "messages" (
