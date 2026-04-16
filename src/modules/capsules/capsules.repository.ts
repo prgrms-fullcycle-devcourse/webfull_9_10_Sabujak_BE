@@ -229,8 +229,15 @@ export class CapsulesRepository {
   async getCapsuleStats() {
     const [[{ totalCapsuleCount }], [{ totalMessageCount }]] =
       await Promise.all([
-        db.select({ totalCapsuleCount: count() }).from(capsules),
-        db.select({ totalMessageCount: count() }).from(messages),
+        db
+          .select({ totalCapsuleCount: count() })
+          .from(capsules)
+          .where(isNull(capsules.deletedAt)),
+        db
+          .select({ totalMessageCount: count() })
+          .from(messages)
+          .innerJoin(capsules, eq(messages.capsuleId, capsules.id))
+          .where(isNull(capsules.deletedAt)),
       ]);
 
     return {
