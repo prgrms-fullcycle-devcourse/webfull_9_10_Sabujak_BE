@@ -5,7 +5,7 @@
  * 실행: node --import tsx scripts/backfill-original-slug.ts
  */
 
-import { or, isNull, eq, sql } from "drizzle-orm";
+import { or, and, isNull, eq, sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { capsules } from "../src/db/schema";
 import { logger } from "../src/common/utils/logger";
@@ -14,10 +14,9 @@ async function backfillOriginalSlug() {
   logger.info("[backfill-original-slug] Starting original_slug backfill...");
 
   // original_slug가 NULL이거나 빈 문자열('')인 경우를 모두 대상으로 합니다.
-  // 스키마에 notNull().default('') 설정이 있어 기존 레코드가 NULL 대신 ''로 저장된 경우가 있습니다.
-  const needsBackfill = or(
-    isNull(capsules.originalSlug),
-    eq(capsules.originalSlug, ""),
+  // 삭제되지 않은(deleted_at IS NULL) 활성 캡슐만 대상으로 제한합니다.
+  const needsBackfill = and(
+    or(isNull(capsules.originalSlug), eq(capsules.originalSlug, "")),
     isNull(capsules.deletedAt),
   );
 
