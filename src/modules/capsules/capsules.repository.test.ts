@@ -247,12 +247,22 @@ describe("CapsulesRepository", () => {
 
   describe("getCapsuleStats", () => {
     it("전체 캡슐 수와 전체 메시지 수를 함께 반환한다", async () => {
-      const fromCapsulesMock = jest
+      const whereCapsulesMock = jest
         .fn()
         .mockResolvedValue([{ totalCapsuleCount: 12 }]);
-      const fromMessagesMock = jest
+      const fromCapsulesMock = jest
+        .fn()
+        .mockReturnValue({ where: whereCapsulesMock });
+
+      const whereMessagesMock = jest
         .fn()
         .mockResolvedValue([{ totalMessageCount: 77 }]);
+      const innerJoinMock = jest
+        .fn()
+        .mockReturnValue({ where: whereMessagesMock });
+      const fromMessagesMock = jest
+        .fn()
+        .mockReturnValue({ innerJoin: innerJoinMock });
 
       db.select
         .mockReturnValueOnce({ from: fromCapsulesMock })
@@ -283,8 +293,18 @@ describe("CapsulesRepository", () => {
         },
       );
 
-      const fromCapsulesMock = jest.fn().mockReturnValue(capsulesPromise);
-      const fromMessagesMock = jest.fn().mockReturnValue(messagesPromise);
+      const whereCapsulesMock = jest.fn().mockReturnValue(capsulesPromise);
+      const fromCapsulesMock = jest
+        .fn()
+        .mockReturnValue({ where: whereCapsulesMock });
+
+      const whereMessagesMock = jest.fn().mockReturnValue(messagesPromise);
+      const innerJoinMock = jest
+        .fn()
+        .mockReturnValue({ where: whereMessagesMock });
+      const fromMessagesMock = jest
+        .fn()
+        .mockReturnValue({ innerJoin: innerJoinMock });
 
       db.select
         .mockReturnValueOnce({ from: fromCapsulesMock })
