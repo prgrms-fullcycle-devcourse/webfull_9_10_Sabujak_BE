@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, lte, isNull } from "drizzle-orm";
 import { logger } from "../../common/utils/logger";
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { db } from "../../db";
@@ -229,8 +229,15 @@ export class CapsulesRepository {
   async getCapsuleStats() {
     const [[{ totalCapsuleCount }], [{ totalMessageCount }]] =
       await Promise.all([
-        db.select({ totalCapsuleCount: count() }).from(capsules),
-        db.select({ totalMessageCount: count() }).from(messages),
+        db
+          .select({ totalCapsuleCount: count() })
+          .from(capsules)
+          .where(isNull(capsules.deletedAt)),
+        db
+          .select({ totalMessageCount: count() })
+          .from(messages)
+          .innerJoin(capsules, eq(messages.capsuleId, capsules.id))
+          .where(isNull(capsules.deletedAt)),
       ]);
 
     return {
@@ -370,6 +377,7 @@ export class CapsulesRepository {
         .values({
           id: capsuleId,
           slug: input.slug,
+          originalSlug: input.slug,
           title: input.title,
           openAt,
           expiresAt,
@@ -648,6 +656,44 @@ export class CapsulesRepository {
     });
   }
 
+  async expireCapsules() {
+    const now = new Date();
+
+    const expiredCapsules = await db.query.capsules.findMany({
+      columns: {
+        id: true,
+        slug: true,
+      },
+      where: and(lte(capsules.expiresAt, now), isNull(capsules.deletedAt)),
+    });
+
+    if (expiredCapsules.length === 0) {
+      return 0;
+    }
+
+    let processedCount = 0;
+
+    for (const capsule of expiredCapsules) {
+      // slug 컬럼의 최대 길이가 100자로 확장되었으므로 기존 slug(최대 50자)와 id(26자)를 온전하게 연결합니다.
+      const newSlug = `${capsule.slug}-${capsule.id}`;
+
+      const [updatedResult] = await db
+        .update(capsules)
+        .set({
+          slug: newSlug,
+          deletedAt: new Date(),
+        })
+        .where(and(eq(capsules.id, capsule.id), isNull(capsules.deletedAt)))
+        .returning({ id: capsules.id });
+
+      if (updatedResult) {
+        processedCount++;
+      }
+    }
+
+    return processedCount;
+  }
+
   async deleteCapsule(input: DeleteCapsuleInputDto) {
     await db.transaction(async (tx) => {
       // 삭제 대상 행을 잠가 수정/삭제 충돌을 직렬화합니다.
@@ -674,9 +720,16 @@ export class CapsulesRepository {
         throw new ForbiddenPasswordException();
       }
 
-      // messages 는 FK ON DELETE CASCADE 로 함께 정리되므로 capsule 만 삭제합니다.
+      // messages는 유지하며, capsule의 slug를 변형하고 deletedAt을 기록하는 soft delete를 수행합니다.
+      // slug 컬럼의 최대 길이가 100자로 확장되었으므로 기존 slug(최대 50자)와 id(26자)를 온전하게 연결합니다.
+      const newSlug = `${input.slug}-${capsule.id}`;
+
       const deletedCapsules = await tx
-        .delete(capsules)
+        .update(capsules)
+        .set({
+          slug: newSlug,
+          deletedAt: new Date(),
+        })
         .where(eq(capsules.slug, input.slug))
         .returning({ id: capsules.id });
 
